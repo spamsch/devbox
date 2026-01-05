@@ -1,0 +1,89 @@
+#!/bin/bash
+# Tailscale startup script for devbox
+# Starts tailscaled and tailscale, logs output to files, displays auth URL
+
+set -e
+
+LOG_DIR="${HOME}/.local/share/tailscale"
+DAEMON_LOG="${LOG_DIR}/tailscaled.log"
+CLIENT_LOG="${LOG_DIR}/tailscale.log"
+
+mkdir -p "$LOG_DIR"
+
+echo "Starting Tailscale..."
+echo "Logs: ${LOG_DIR}/"
+
+# Check if tailscaled is already running
+if pgrep -x tailscaled > /dev/null; then
+    echo "tailscaled is already running"
+else
+    echo "Starting tailscaled daemon..."
+    sudo tailscaled --state=/var/lib/tailscale/tailscaled.state >> "$DAEMON_LOG" 2>&1 &
+    
+    # Wait for daemon to be ready
+    sleep 2
+    
+    # Verify it started
+    if ! pgrep -x tailscaled > /dev/null; then
+        echo "ERROR: Failed to start tailscaled. Check log: $DAEMON_LOG"
+        tail -20 "$DAEMON_LOG"
+        exit 1
+    fi
+    echo "tailscaled started (PID: $(pgrep -x tailscaled))"
+fi
+
+# Check current status
+STATUS=$(sudo tailscale status 2>&1 || true)
+
+if echo "$STATUS" | grep -q "Logged out"; then
+    echo ""
+    echo "Authenticating with Tailscale..."
+    echo "Waiting for auth URL..."
+    echo ""
+    
+    # Run tailscale up in background, capture output
+    sudo tailscale up 2>&1 | tee -a "$CLIENT_LOG" &
+    TS_PID=$!
+    
+    # Wait for and display the auth URL
+    TIMEOUT=30
+    FOUND=0
+    for i in $(seq 1 $TIMEOUT); do
+        if grep -q "https://login.tailscale.com" "$CLIENT_LOG" 2>/dev/null; then
+            FOUND=1
+            break
+        fi
+        sleep 1
+    done
+    
+    if [ $FOUND -eq 1 ]; then
+        echo "============================================"
+        grep -o "https://login.tailscale.com/[^ ]*" "$CLIENT_LOG" | head -1
+        echo "============================================"
+        echo ""
+        echo "Open the URL above in your browser to authenticate."
+        echo "Waiting for authentication to complete..."
+        
+        # Wait for the tailscale up process to complete
+        wait $TS_PID 2>/dev/null || true
+    else
+        echo "Timeout waiting for auth URL. Check logs:"
+        echo "  Daemon: $DAEMON_LOG"
+        echo "  Client: $CLIENT_LOG"
+    fi
+elif echo "$STATUS" | grep -q "unexpected state"; then
+    echo "Tailscale needs authentication..."
+    sudo tailscale up 2>&1 | tee -a "$CLIENT_LOG"
+else
+    echo "Tailscale is already connected"
+fi
+
+# Show final status
+echo ""
+echo "Tailscale Status:"
+sudo tailscale status
+
+echo ""
+echo "Logs saved to:"
+echo "  Daemon: $DAEMON_LOG"
+echo "  Client: $CLIENT_LOG"

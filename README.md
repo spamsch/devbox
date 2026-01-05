@@ -88,6 +88,9 @@ devbox                      # Start interactive shell (default)
 devbox shell                # Same as above
 devbox opencode             # Start OpenCode AI assistant
 devbox exec <cmd>           # Run a command in the container
+devbox --standalone [name]  # Start isolated container (no host mounts)
+devbox --standalone-list    # List all standalone sessions
+devbox --standalone-rm <n>  # Remove a standalone session
 devbox --rebuild            # Force rebuild the Docker image
 devbox --clean              # Remove container and data for current project
 devbox --info               # Show container and project information
@@ -111,6 +114,58 @@ devbox exec npm test
 # Run multiple commands
 devbox exec bash -c "npm install && npm test"
 ```
+
+## Standalone Mode
+
+Standalone mode runs a fully isolated container using Docker named volumes instead of mounting host directories. This is useful for:
+
+- Remote servers where you don't want code on the host
+- Fully isolated development environments
+- Cloning and working on repos entirely inside the container
+
+### Usage
+
+```bash
+# Start a standalone session (default name: 'devbox')
+devbox --standalone
+
+# Start a named standalone session
+devbox --standalone myproject
+
+# List all standalone sessions
+devbox --standalone-list
+
+# Remove a standalone session and all its data
+devbox --standalone-rm myproject
+```
+
+### Workflow Example
+
+```bash
+# On a remote server, start a standalone session
+devbox --standalone myproject
+
+# Inside the container:
+devbox-setup                      # Configure git, GitHub CLI
+gh auth login                     # Authenticate with GitHub
+gh repo clone owner/my-repo       # Clone your repository
+cd my-repo
+opencode                          # Start coding
+
+# Detach with Ctrl+D or 'exit', container keeps running
+# Re-attach anytime with:
+devbox --standalone myproject
+```
+
+### Data Persistence
+
+Standalone sessions use Docker named volumes:
+- `devbox-<name>-workspace` - Your code and projects
+- `devbox-<name>-config` - Tool configurations
+- `devbox-<name>-cache` - Package caches
+- `devbox-<name>-data` - Persistent app data
+
+Data persists until you explicitly remove it with `devbox --standalone-rm <name>`.
 
 ## First-Time Setup
 

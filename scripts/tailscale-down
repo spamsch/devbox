@@ -1,0 +1,32 @@
+#!/bin/bash
+# Tailscale shutdown script for devbox
+# Disconnects from Tailscale and stops the daemon
+
+LOG_DIR="${HOME}/.local/share/tailscale"
+DAEMON_LOG="${LOG_DIR}/tailscaled.log"
+
+echo "Stopping Tailscale..."
+
+# Disconnect from the network
+if pgrep -x tailscaled > /dev/null; then
+    echo "Disconnecting from Tailscale network..."
+    sudo tailscale down 2>&1 | tee -a "$LOG_DIR/tailscale.log"
+    
+    echo "Stopping tailscaled daemon..."
+    sudo pkill tailscaled
+    
+    # Wait for it to stop
+    sleep 1
+    
+    if pgrep -x tailscaled > /dev/null; then
+        echo "Force killing tailscaled..."
+        sudo pkill -9 tailscaled
+    fi
+    
+    echo "Tailscale stopped."
+else
+    echo "tailscaled is not running."
+fi
+
+echo ""
+echo "Logs saved to: $LOG_DIR/"

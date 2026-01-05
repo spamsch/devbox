@@ -31,6 +31,7 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
+DIM='\033[2m'
 NC='\033[0m'  # No Color
 
 # -----------------------------------------------------------------------------
@@ -57,8 +58,7 @@ log_error() {
 # -----------------------------------------------------------------------------
 # Environment Setup
 # -----------------------------------------------------------------------------
-# Ensure PATH includes user binaries
-export PATH="$HOME/.local/bin:$PATH"
+# Ensure PATH includes opencode
 export PATH="$HOME/.opencode/bin:$PATH"
 
 # Source NVM if available
@@ -211,6 +211,7 @@ check_first_run() {
 show_welcome() {
     local is_first_run=$1
     local project_name=$(basename "/workspace" 2>/dev/null || echo "workspace")
+    local is_standalone="${DEVBOX_STANDALONE:-0}"
     
     # Get version info
     local node_version=$(node --version 2>/dev/null || echo "not found")
@@ -220,7 +221,10 @@ show_welcome() {
     echo ""
     echo -e "${BOLD}${CYAN}Devbox${NC} - Development Environment"
     echo -e "────────────────────────────────────────────────────"
-    echo -e "  ${BOLD}Project:${NC}    /workspace"
+    if [ "$is_standalone" = "1" ]; then
+        echo -e "  ${BOLD}Mode:${NC}       Standalone (session: ${DEVBOX_SESSION:-devbox})"
+    fi
+    echo -e "  ${BOLD}Workspace:${NC}  /workspace"
     echo -e "  ${BOLD}Python:${NC}     $python_version (uv available)"
     echo -e "  ${BOLD}Node.js:${NC}    $node_version"
     echo -e "  ${BOLD}OpenCode:${NC}   $opencode_version"
@@ -230,6 +234,14 @@ show_welcome() {
         echo ""
         echo -e "  ${YELLOW}First time setup!${NC}"
         echo -e "  Run ${BOLD}devbox-setup${NC} to configure git and GitHub CLI."
+        if [ "$is_standalone" = "1" ]; then
+            echo ""
+            echo -e "  ${BOLD}To clone a repository:${NC}"
+            echo -e "    cd /workspace && gh repo clone <owner>/<repo>"
+            echo -e "    ${DIM}or${NC}"
+            echo -e "    cd /workspace && git clone <url>"
+        fi
+        echo ""
         echo -e "  Run ${BOLD}opencode${NC} to start coding."
         echo ""
     else

@@ -10,6 +10,7 @@
 #   devbox shell            Same as above
 #   devbox opencode         Start OpenCode directly
 #   devbox exec <cmd>       Run a command in the container
+#   devbox --standalone [name]  Start isolated container (no host mounts)
 #   devbox --rebuild        Force rebuild the Docker image
 #   devbox --clean          Remove container and data for current project
 #   devbox --info           Show container and project information
@@ -19,6 +20,11 @@
 #   - Separate shell history
 #   - Separate package caches
 #   - Shared base image (saves disk space)
+#
+# Standalone mode (--standalone) creates a fully isolated environment:
+#   - Uses Docker named volumes instead of host directories
+#   - Clone repositories inside the container
+#   - All data persists in Docker volumes
 #
 # =============================================================================
 
@@ -38,6 +44,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Data directory for persistent storage
 DEVBOX_DATA_DIR="${DEVBOX_DATA_DIR:-$HOME/.devbox}"
+
+# Tailscale support - set to true to enable networking capabilities
+DEVBOX_TAILSCALE="${DEVBOX_TAILSCALE:-false}"
 
 # -----------------------------------------------------------------------------
 # Color Codes
@@ -126,17 +135,24 @@ needs_rebuild() {
 
 # Build the Docker image
 build_image() {
-    local force="${1:-false}"
+    local no_cache="${1:-false}"
     
     log_info "Building devbox image..."
     
+    local build_args=(
+        --build-arg "USER_ID=$(id -u)"
+        --build-arg "GROUP_ID=$(id -g)"
+        --build-arg "BUILD_TIMESTAMP=$(date +%s)"
+        -t "$DEVBOX_IMAGE"
+    )
+    
+    if [ "$no_cache" = "true" ]; then
+        log_info "Building without cache..."
+        build_args+=("--no-cache")
+    fi
+    
     # Build with user's UID/GID for proper file permissions
-    docker build \
-        --build-arg USER_ID="$(id -u)" \
-        --build-arg GROUP_ID="$(id -g)" \
-        --build-arg BUILD_TIMESTAMP="$(date +%s)" \
-        -t "$DEVBOX_IMAGE" \
-        "$SCRIPT_DIR"
+    docker build "${build_args[@]}" "$SCRIPT_DIR"
     
     # Update build marker
     mkdir -p "$DEVBOX_DATA_DIR"
@@ -240,6 +256,15 @@ build_run_args() {
         args+=("--env-file" "$PWD/.env")
     fi
     
+    # Add Tailscale capabilities if enabled
+    if [ "$DEVBOX_TAILSCALE" = "true" ]; then
+        args+=("--cap-add=NET_ADMIN")
+        args+=("--cap-add=NET_RAW")
+        args+=("--device=/dev/net/tun:/dev/net/tun")
+        # Persist Tailscale state
+        args+=("-v" "$data_dir/tailscale:/var/lib/tailscale")
+    fi
+    
     echo "${args[@]}"
 }
 
@@ -289,8 +314,9 @@ cmd_exec() {
 }
 
 cmd_rebuild() {
+    local no_cache="${1:-false}"
     log_info "Forcing image rebuild..."
-    build_image true
+    build_image "$no_cache"
 }
 
 cmd_clean() {
@@ -385,6 +411,193 @@ cmd_info() {
     echo ""
 }
 
+# -----------------------------------------------------------------------------
+# Standalone Mode
+# -----------------------------------------------------------------------------
+# Run a fully isolated container using Docker named volumes.
+# No host directories are mounted - everything lives in Docker volumes.
+# This is useful for:
+#   - Remote servers where you don't want code on the host
+#   - Fully isolated development environments
+#   - Cloning and working on repos entirely inside the container
+# -----------------------------------------------------------------------------
+
+cmd_standalone() {
+    local session_name="${1:-devbox}"
+    local container_name="devbox-standalone-${session_name}"
+    
+    ensure_image
+    
+    # Check if container is already running
+    if docker ps -q -f "name=^${container_name}$" | grep -q .; then
+        log_info "Container '$container_name' is running, attaching..."
+        docker exec -it "$container_name" /bin/zsh
+        return
+    fi
+    
+    # Check if container exists but stopped
+    if docker ps -aq -f "name=^${container_name}$" | grep -q .; then
+        log_info "Starting existing container '$container_name'..."
+        docker start -ai "$container_name"
+        return
+    fi
+    
+    log_info "Creating standalone container: $container_name"
+    log_info "Using Docker volumes for persistence (no host mounts)"
+    echo ""
+    
+    # Volume names based on session
+    local vol_workspace="devbox-${session_name}-workspace"
+    local vol_config="devbox-${session_name}-config"
+    local vol_cache="devbox-${session_name}-cache"
+    local vol_data="devbox-${session_name}-data"
+    
+    local run_args=(
+        # Container name (persistent, not --rm)
+        "--name" "$container_name"
+        
+        # Interactive terminal
+        "-it"
+        
+        # Hostname
+        "--hostname" "devbox-${session_name}"
+        
+        # Mount named volumes (persistent Docker volumes)
+        "-v" "${vol_workspace}:/workspace"
+        "-v" "${vol_config}:/home/dev/.config"
+        "-v" "${vol_cache}:/home/dev/.cache"
+        "-v" "${vol_data}:/home/dev/.local/share"
+        
+        # Environment variables
+        "-e" "TERM=${TERM:-xterm-256color}"
+        "-e" "DEVBOX_STANDALONE=1"
+        "-e" "DEVBOX_SESSION=${session_name}"
+    )
+    
+    # Pass through API keys if set
+    if [ -n "$ANTHROPIC_API_KEY" ]; then
+        run_args+=("-e" "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY")
+    fi
+    if [ -n "$OPENAI_API_KEY" ]; then
+        run_args+=("-e" "OPENAI_API_KEY=$OPENAI_API_KEY")
+    fi
+    if [ -n "$GH_TOKEN" ]; then
+        run_args+=("-e" "GH_TOKEN=$GH_TOKEN")
+    fi
+    if [ -n "$GITHUB_TOKEN" ]; then
+        run_args+=("-e" "GITHUB_TOKEN=$GITHUB_TOKEN")
+    fi
+    
+    # Add Tailscale capabilities if enabled
+    if [ "$DEVBOX_TAILSCALE" = "true" ]; then
+        local vol_tailscale="devbox-${session_name}-tailscale"
+        run_args+=("--cap-add=NET_ADMIN")
+        run_args+=("--cap-add=NET_RAW")
+        run_args+=("--device=/dev/net/tun:/dev/net/tun")
+        run_args+=("-v" "${vol_tailscale}:/var/lib/tailscale")
+    fi
+    
+    # Run container
+    docker run "${run_args[@]}" "$DEVBOX_IMAGE" /bin/zsh
+}
+
+cmd_standalone_list() {
+    echo ""
+    echo -e "${BOLD}${CYAN}Standalone Devbox Sessions${NC}"
+    echo "==========================="
+    echo ""
+    
+    # List running standalone containers
+    local running=$(docker ps --filter "name=devbox-standalone-" --format "{{.Names}}\t{{.Status}}" 2>/dev/null)
+    if [ -n "$running" ]; then
+        echo -e "${BOLD}Running:${NC}"
+        echo "$running" | while read line; do
+            local name=$(echo "$line" | cut -f1 | sed 's/devbox-standalone-//')
+            local status=$(echo "$line" | cut -f2-)
+            echo -e "  ${GREEN}●${NC} $name ($status)"
+        done
+        echo ""
+    fi
+    
+    # List stopped standalone containers
+    local stopped=$(docker ps -a --filter "name=devbox-standalone-" --filter "status=exited" --format "{{.Names}}" 2>/dev/null)
+    if [ -n "$stopped" ]; then
+        echo -e "${BOLD}Stopped:${NC}"
+        echo "$stopped" | while read name; do
+            local session=$(echo "$name" | sed 's/devbox-standalone-//')
+            echo -e "  ${DIM}○${NC} $session"
+        done
+        echo ""
+    fi
+    
+    # List volumes
+    local volumes=$(docker volume ls --filter "name=devbox-" --format "{{.Name}}" 2>/dev/null | grep -E "^devbox-[^-]+-workspace$" | sed 's/-workspace$//' | sed 's/^devbox-//')
+    if [ -n "$volumes" ]; then
+        echo -e "${BOLD}Sessions with data:${NC}"
+        for session in $volumes; do
+            local ws_size=$(docker system df -v 2>/dev/null | grep "devbox-${session}-workspace" | awk '{print $4}' || echo "?")
+            echo "  - $session"
+        done
+        echo ""
+    fi
+    
+    echo -e "${DIM}Use 'devbox --standalone <name>' to start/attach to a session${NC}"
+    echo -e "${DIM}Use 'devbox --standalone-rm <name>' to remove a session${NC}"
+    echo ""
+}
+
+cmd_standalone_rm() {
+    local session_name="${1:-}"
+    
+    if [ -z "$session_name" ]; then
+        log_error "Please specify a session name"
+        log_error "Usage: devbox --standalone-rm <name>"
+        echo ""
+        cmd_standalone_list
+        exit 1
+    fi
+    
+    local container_name="devbox-standalone-${session_name}"
+    
+    echo ""
+    echo -e "${BOLD}Remove standalone session: ${CYAN}${session_name}${NC}"
+    echo ""
+    echo "This will remove:"
+    echo "  - Container: $container_name"
+    echo "  - Volume: devbox-${session_name}-workspace"
+    echo "  - Volume: devbox-${session_name}-config"
+    echo "  - Volume: devbox-${session_name}-cache"
+    echo "  - Volume: devbox-${session_name}-data"
+    echo ""
+    echo -e "${RED}WARNING: All data in the workspace will be permanently deleted!${NC}"
+    echo ""
+    
+    read -p "Are you sure? [y/N] " -n 1 -r
+    echo ""
+    
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        log_info "Cancelled"
+        exit 0
+    fi
+    
+    # Stop and remove container
+    if docker ps -aq -f "name=^${container_name}$" | grep -q .; then
+        log_info "Removing container..."
+        docker rm -f "$container_name" &> /dev/null || true
+    fi
+    
+    # Remove volumes
+    for suffix in workspace config cache data; do
+        local vol="devbox-${session_name}-${suffix}"
+        if docker volume ls -q | grep -q "^${vol}$"; then
+            log_info "Removing volume: $vol"
+            docker volume rm "$vol" &> /dev/null || true
+        fi
+    done
+    
+    log_success "Session '$session_name' removed"
+}
+
 cmd_help() {
     cat << 'EOF'
 Devbox - Development Container Launcher
@@ -397,10 +610,17 @@ Commands:
   opencode            Start OpenCode AI assistant
   exec <cmd>          Run a command in the container
 
+Standalone Mode (no host mounts, uses Docker volumes):
+  --standalone [name]     Start/attach to standalone session (default: devbox)
+  --standalone-list       List all standalone sessions
+  --standalone-rm <name>  Remove a standalone session and its data
+
 Options:
   --rebuild           Force rebuild the Docker image
+  --no-cache          Build without Docker cache (use with --rebuild)
   --clean             Remove container and data for current project
   --info              Show container and project information
+  --tailscale         Enable Tailscale VPN support (adds NET_ADMIN capability)
   --help, -h          Show this help message
   --version, -v       Show version
 
@@ -410,7 +630,21 @@ Examples:
   devbox exec npm install     # Run npm install in container
   devbox exec python app.py   # Run Python script
   devbox --rebuild            # Rebuild after Dockerfile changes
+  devbox --rebuild --no-cache # Full rebuild without cache
   devbox --clean              # Clean up project data
+
+Standalone Examples:
+  devbox --standalone         # Start standalone session 'devbox'
+  devbox --standalone myproj  # Start standalone session 'myproj'
+  devbox --standalone-list    # List all standalone sessions
+  devbox --standalone-rm myproj  # Remove session and all its data
+
+Tailscale Examples:
+  devbox --tailscale              # Start with Tailscale support
+  devbox --tailscale --standalone # Standalone with Tailscale
+  # Inside container:
+  sudo tailscaled &               # Start Tailscale daemon
+  sudo tailscale up               # Authenticate and connect
 
 Environment Variables:
   ANTHROPIC_API_KEY   API key for Anthropic (Claude)
@@ -418,7 +652,8 @@ Environment Variables:
   GH_TOKEN            GitHub personal access token
   DEVBOX_DATA_DIR     Override default data directory (~/.devbox)
   DEVBOX_IMAGE        Override default image (default: devbox:latest)
-                      Use ghcr.io/username/devbox:latest for pre-built image
+                      Use ghcr.io/spamsch/devbox:latest for pre-built image
+  DEVBOX_TAILSCALE    Set to 'true' to always enable Tailscale support
 
 For more information, see: https://github.com/spamsch/devbox
 EOF
@@ -436,6 +671,21 @@ main() {
     # Check Docker availability
     check_docker
     
+    # Pre-parse for global flags (can be combined with other commands)
+    local args=()
+    local no_cache="false"
+    for arg in "$@"; do
+        if [ "$arg" = "--tailscale" ]; then
+            DEVBOX_TAILSCALE="true"
+            log_info "Tailscale support enabled"
+        elif [ "$arg" = "--no-cache" ]; then
+            no_cache="true"
+        else
+            args+=("$arg")
+        fi
+    done
+    set -- "${args[@]}"
+    
     # Parse command
     case "${1:-}" in
         --help|-h)
@@ -445,13 +695,24 @@ main() {
             cmd_version
             ;;
         --rebuild)
-            cmd_rebuild
+            cmd_rebuild "$no_cache"
             ;;
         --clean)
             cmd_clean
             ;;
         --info)
             cmd_info
+            ;;
+        --standalone)
+            shift
+            cmd_standalone "$@"
+            ;;
+        --standalone-list)
+            cmd_standalone_list
+            ;;
+        --standalone-rm)
+            shift
+            cmd_standalone_rm "$@"
             ;;
         shell)
             cmd_shell

@@ -67,8 +67,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     jq \
     direnv \
     unzip \
-    # Network tools (for git SSH)
+    # Network tools
     openssh-client \
+    iputils-ping \
+    telnet \
     # Python build dependencies (for packages with native extensions)
     python3-dev \
     && \
@@ -102,6 +104,24 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
     > /etc/apt/sources.list.d/github-cli.list && \
     apt-get update && \
     apt-get install -y gh && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# -----------------------------------------------------------------------------
+# Tailscale VPN Installation
+# -----------------------------------------------------------------------------
+# Install Tailscale for secure network access.
+# To use Tailscale in the container:
+#   1. Run with --cap-add=NET_ADMIN --device=/dev/net/tun
+#   2. Start tailscaled: sudo tailscaled &
+#   3. Authenticate: sudo tailscale up
+# -----------------------------------------------------------------------------
+RUN curl -fsSL https://pkgs.tailscale.com/stable/debian/bookworm.noarmor.gpg | \
+    tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null && \
+    curl -fsSL https://pkgs.tailscale.com/stable/debian/bookworm.tailscale-keyring.list | \
+    tee /etc/apt/sources.list.d/tailscale.list && \
+    apt-get update && \
+    apt-get install -y tailscale && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -251,12 +271,19 @@ USER ${USERNAME}
 # -----------------------------------------------------------------------------
 # Copy Scripts
 # -----------------------------------------------------------------------------
-# Copy the setup wizard and utility scripts.
+# Copy the setup wizard and utility scripts to /usr/local/bin so they are
+# available regardless of volume mounts that may overwrite ~/.local
 # -----------------------------------------------------------------------------
-COPY --chown=${USERNAME}:${USERNAME} scripts/setup.sh /home/${USERNAME}/.local/bin/devbox-setup
-COPY --chown=${USERNAME}:${USERNAME} scripts/tmux-dev /home/${USERNAME}/.local/bin/tmux-dev
-RUN chmod +x /home/${USERNAME}/.local/bin/devbox-setup \
-             /home/${USERNAME}/.local/bin/tmux-dev
+USER root
+COPY scripts/setup.sh /usr/local/bin/devbox-setup
+COPY scripts/tmux-dev /usr/local/bin/tmux-dev
+COPY scripts/tailscale-up /usr/local/bin/tailscale-up
+COPY scripts/tailscale-down /usr/local/bin/tailscale-down
+RUN chmod +x /usr/local/bin/devbox-setup \
+             /usr/local/bin/tmux-dev \
+             /usr/local/bin/tailscale-up \
+             /usr/local/bin/tailscale-down
+USER ${USERNAME}
 
 # Switch to root to copy entrypoint to system location
 USER root
