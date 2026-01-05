@@ -235,6 +235,20 @@ COPY --chown=${USERNAME}:${USERNAME} config/vimrc /home/${USERNAME}/.vimrc
 COPY --chown=${USERNAME}:${USERNAME} config/zshrc /home/${USERNAME}/.zshrc
 
 # -----------------------------------------------------------------------------
+# Copy Default Configs to /etc/devbox/defaults
+# -----------------------------------------------------------------------------
+# These are used by the entrypoint to restore defaults when volume mounts
+# overwrite the user's home directory configs.
+# -----------------------------------------------------------------------------
+USER root
+RUN mkdir -p /etc/devbox/defaults/tmux
+COPY config/starship.toml /etc/devbox/defaults/starship.toml
+COPY config/tmux/dev-layout.conf /etc/devbox/defaults/tmux/dev-layout.conf
+RUN chmod -R 644 /etc/devbox/defaults/* && \
+    chmod 755 /etc/devbox/defaults /etc/devbox/defaults/tmux
+USER ${USERNAME}
+
+# -----------------------------------------------------------------------------
 # Copy Scripts
 # -----------------------------------------------------------------------------
 # Copy the setup wizard and utility scripts.

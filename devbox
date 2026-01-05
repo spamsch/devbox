@@ -420,7 +420,7 @@ Environment Variables:
   DEVBOX_IMAGE        Override default image (default: devbox:latest)
                       Use ghcr.io/username/devbox:latest for pre-built image
 
-For more information, see: https://github.com/yourusername/devbox
+For more information, see: https://github.com/spamsch/devbox
 EOF
 }
 

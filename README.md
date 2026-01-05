@@ -14,7 +14,7 @@ A Docker-based development environment for AI-assisted coding with [OpenCode](ht
 
 ## Prerequisites
 
-- **Docker** - Must be installed and running
+- **Docker** - Must be installed and running (see [Installing Docker](#installing-docker) below)
 - **Nerd Font** - Required for the starship prompt icons
   - Install from [nerdfonts.com](https://www.nerdfonts.com/)
   - Recommended: JetBrainsMono Nerd Font, FiraCode Nerd Font, or Hack Nerd Font
@@ -27,25 +27,34 @@ A Docker-based development environment for AI-assisted coding with [OpenCode](ht
 Clone this repository and add `devbox` to your PATH:
 
 ```bash
-git clone https://github.com/yourusername/devbox.git ~/.devbox-source
+git clone https://github.com/spamsch/devbox.git ~/.devbox-source
 ln -s ~/.devbox-source/devbox ~/.local/bin/devbox
 ```
 
-#### Using Pre-built Image
+### Using Pre-built Image
 
-Alternatively, you can use the pre-built image from GitHub Container Registry:
+A pre-built image is available from GitHub Container Registry at [github.com/spamsch/devbox](https://github.com/spamsch/devbox):
 
 ```bash
-docker pull ghcr.io/yourusername/devbox:latest
+# Pull the pre-built image
+docker pull ghcr.io/spamsch/devbox:latest
+
+# Set it as your default image
+export DEVBOX_IMAGE=ghcr.io/spamsch/devbox:latest
+
+# Or add to your shell profile for persistence
+echo 'export DEVBOX_IMAGE=ghcr.io/spamsch/devbox:latest' >> ~/.bashrc
 ```
 
-Then run directly:
+Then use `devbox` as normal - it will use the pre-built image instead of building locally.
+
+You can also run the image directly without the devbox script:
 
 ```bash
 docker run -it --rm \
   -v $(pwd):/workspace \
   -v ~/.ssh:/home/dev/.ssh:ro \
-  ghcr.io/yourusername/devbox:latest
+  ghcr.io/spamsch/devbox:latest
 ```
 
 ### 2. Run
@@ -382,6 +391,48 @@ To remove all devbox data:
 rm -rf ~/.devbox
 docker rmi devbox:latest
 ```
+
+## Installing Docker
+
+### Debian / Ubuntu
+
+Quick install script for Docker on Debian-based systems:
+
+```bash
+# Update package index
+sudo apt-get update
+
+# Install prerequisites
+sudo apt-get install -y ca-certificates curl gnupg
+
+# Add Docker's official GPG key
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+# Add Docker repository
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Add your user to the docker group (to run without sudo)
+sudo usermod -aG docker $USER
+
+# Apply group changes (or log out and back in)
+newgrp docker
+
+# Verify installation
+docker run hello-world
+```
+
+For Ubuntu, replace `debian` with `ubuntu` in the repository URL above.
+
+For other distributions, see the [official Docker documentation](https://docs.docker.com/engine/install/).
 
 ## Architecture
 

@@ -59,6 +59,7 @@ log_error() {
 # -----------------------------------------------------------------------------
 # Ensure PATH includes user binaries
 export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.opencode/bin:$PATH"
 
 # Source NVM if available
 if [ -s "$HOME/.nvm/nvm.sh" ]; then
@@ -68,6 +69,29 @@ fi
 
 # Set terminal for better experience
 export TERM="${TERM:-xterm-256color}"
+
+# -----------------------------------------------------------------------------
+# Default Configuration Files
+# -----------------------------------------------------------------------------
+# Copy default config files if they don't exist in the mounted volume.
+# This ensures the starship preset and other configs are available.
+# -----------------------------------------------------------------------------
+setup_default_configs() {
+    # Starship config
+    if [ ! -f "$HOME/.config/starship.toml" ]; then
+        mkdir -p "$HOME/.config"
+        cp /etc/devbox/defaults/starship.toml "$HOME/.config/starship.toml" 2>/dev/null || true
+    fi
+    
+    # tmux layout config
+    if [ ! -f "$HOME/.tmux/dev-layout.conf" ]; then
+        mkdir -p "$HOME/.tmux"
+        cp /etc/devbox/defaults/tmux/dev-layout.conf "$HOME/.tmux/dev-layout.conf" 2>/dev/null || true
+    fi
+    
+    # vim undo directory
+    mkdir -p "$HOME/.vim/undodir"
+}
 
 # -----------------------------------------------------------------------------
 # Git Configuration
@@ -220,6 +244,7 @@ show_welcome() {
 # -----------------------------------------------------------------------------
 main() {
     # Run setup tasks (fast, idempotent)
+    setup_default_configs
     setup_git_config
     setup_ssh_permissions
     setup_direnv
