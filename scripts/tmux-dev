@@ -1,0 +1,36 @@
+#!/bin/bash
+# =============================================================================
+# tmux-dev - Start tmux with the devbox development layout
+# =============================================================================
+#
+# This script starts a new tmux session with a 3-pane layout:
+#
+#   ┌────────────────────┬────────────────────┐
+#   │                    │      terminal      │
+#   │     main pane      ├────────────────────┤
+#   │   (opencode/vim)   │      terminal      │
+#   └────────────────────┴────────────────────┘
+#
+# Usage:
+#   tmux-dev              Start new session named 'dev'
+#   tmux-dev myproject    Start new session named 'myproject'
+#
+# =============================================================================
+
+SESSION_NAME="${1:-dev}"
+
+# Check if session already exists
+if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+    echo "Session '$SESSION_NAME' already exists. Attaching..."
+    tmux attach-session -t "$SESSION_NAME"
+    exit 0
+fi
+
+# Create new session (detached)
+tmux new-session -d -s "$SESSION_NAME" -c /workspace
+
+# Apply the dev layout
+tmux source-file ~/.tmux/dev-layout.conf
+
+# Attach to the session
+tmux attach-session -t "$SESSION_NAME"

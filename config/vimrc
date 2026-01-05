@@ -1,0 +1,249 @@
+" =============================================================================
+" Vim Configuration
+" =============================================================================
+"
+" Sensible defaults for development work. This configuration provides
+" a good starting point without being overwhelming.
+"
+" Quick Reference:
+"   :w          - Save file
+"   :q          - Quit
+"   :wq         - Save and quit
+"   /pattern    - Search forward
+"   n/N         - Next/previous search result
+"   gg/G        - Go to start/end of file
+"   dd          - Delete line
+"   yy          - Yank (copy) line
+"   p           - Paste
+"   u           - Undo
+"   Ctrl+r      - Redo
+"
+" =============================================================================
+
+" -----------------------------------------------------------------------------
+" Basic Settings
+" -----------------------------------------------------------------------------
+" Use Vim settings rather than Vi settings (must be first)
+set nocompatible
+
+" Enable file type detection and plugins
+filetype plugin indent on
+
+" Enable syntax highlighting
+syntax enable
+
+" -----------------------------------------------------------------------------
+" User Interface
+" -----------------------------------------------------------------------------
+" Show line numbers
+set number
+
+" Show relative line numbers (useful for vim motions like 5j, 10k)
+set relativenumber
+
+" Highlight the current line
+set cursorline
+
+" Show matching brackets when cursor is over them
+set showmatch
+
+" Show command in bottom bar
+set showcmd
+
+" Visual autocomplete for command menu
+set wildmenu
+set wildmode=longest:full,full
+
+" Always show the status line
+set laststatus=2
+
+" Show cursor position in status line
+set ruler
+
+" Disable the bell
+set belloff=all
+
+" -----------------------------------------------------------------------------
+" Search Settings
+" -----------------------------------------------------------------------------
+" Highlight search results
+set hlsearch
+
+" Incremental search (show matches as you type)
+set incsearch
+
+" Case insensitive search...
+set ignorecase
+
+" ...unless the search contains uppercase letters
+set smartcase
+
+" Press Enter to clear search highlighting
+nnoremap <CR> :nohlsearch<CR><CR>
+
+" -----------------------------------------------------------------------------
+" Indentation
+" -----------------------------------------------------------------------------
+" Use spaces instead of tabs
+set expandtab
+
+" Number of spaces per tab
+set tabstop=4
+
+" Number of spaces for indent operations
+set shiftwidth=4
+
+" Number of spaces for Tab key in insert mode
+set softtabstop=4
+
+" Copy indent from current line when starting a new line
+set autoindent
+
+" Smart autoindenting for C-like programs
+set smartindent
+
+" Round indent to multiple of shiftwidth
+set shiftround
+
+" -----------------------------------------------------------------------------
+" Text Handling
+" -----------------------------------------------------------------------------
+" Allow backspace over everything in insert mode
+set backspace=indent,eol,start
+
+" Allow switching buffers without saving
+set hidden
+
+" Automatically read files changed outside of vim
+set autoread
+
+" Wrap long lines at word boundaries
+set linebreak
+
+" Show wrapped line continuation
+set showbreak=>>>
+
+" -----------------------------------------------------------------------------
+" Performance
+" -----------------------------------------------------------------------------
+" Don't redraw screen during macro execution (faster macros)
+set lazyredraw
+
+" Faster update time (default is 4000ms)
+set updatetime=300
+
+" Shorter timeout for key sequences
+set ttimeoutlen=50
+
+" -----------------------------------------------------------------------------
+" File Handling
+" -----------------------------------------------------------------------------
+" No backup files
+set nobackup
+set nowritebackup
+
+" No swap files (can be annoying with mounted volumes)
+set noswapfile
+
+" Enable persistent undo (undo history survives vim restart)
+set undofile
+set undodir=~/.vim/undodir
+
+" Create undo directory if it doesn't exist
+if !isdirectory($HOME . "/.vim/undodir")
+    call mkdir($HOME . "/.vim/undodir", "p", 0700)
+endif
+
+" -----------------------------------------------------------------------------
+" Mouse Support
+" -----------------------------------------------------------------------------
+" Enable mouse in all modes
+set mouse=a
+
+" -----------------------------------------------------------------------------
+" Clipboard
+" -----------------------------------------------------------------------------
+" Use system clipboard (requires vim with +clipboard)
+" Falls back to internal clipboard if not available
+if has('clipboard')
+    set clipboard=unnamedplus
+endif
+
+" -----------------------------------------------------------------------------
+" Splits
+" -----------------------------------------------------------------------------
+" Open new vertical splits to the right
+set splitright
+
+" Open new horizontal splits below
+set splitbelow
+
+" -----------------------------------------------------------------------------
+" Scrolling
+" -----------------------------------------------------------------------------
+" Keep 8 lines visible above/below cursor when scrolling
+set scrolloff=8
+
+" Keep 8 columns visible left/right of cursor when scrolling horizontally
+set sidescrolloff=8
+
+" -----------------------------------------------------------------------------
+" File Encoding
+" -----------------------------------------------------------------------------
+" Use UTF-8 encoding
+set encoding=utf-8
+set fileencoding=utf-8
+
+" -----------------------------------------------------------------------------
+" Status Line
+" -----------------------------------------------------------------------------
+" Custom status line (simple but informative)
+set statusline=
+set statusline+=%f                           " File path
+set statusline+=%m                           " Modified flag
+set statusline+=%r                           " Read-only flag
+set statusline+=%h                           " Help buffer flag
+set statusline+=%=                           " Switch to right side
+set statusline+=%y                           " File type
+set statusline+=\ %l:%c                      " Line:Column
+set statusline+=\ [%p%%]                     " Percentage through file
+
+" -----------------------------------------------------------------------------
+" Key Mappings
+" -----------------------------------------------------------------------------
+" Set leader key to space (more accessible than backslash)
+let mapleader = " "
+
+" Quick save
+nnoremap <leader>w :w<CR>
+
+" Quick quit
+nnoremap <leader>q :q<CR>
+
+" Quick save and quit
+nnoremap <leader>x :wq<CR>
+
+" Move between splits with Ctrl + h/j/k/l
+nnoremap <C-h> <C-w>h
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+nnoremap <C-l> <C-w>l
+
+" Move lines up/down with Alt+j/k
+nnoremap <A-j> :m .+1<CR>==
+nnoremap <A-k> :m .-2<CR>==
+vnoremap <A-j> :m '>+1<CR>gv=gv
+vnoremap <A-k> :m '<-2<CR>gv=gv
+
+" Keep visual selection when indenting
+vnoremap < <gv
+vnoremap > >gv
+
+" -----------------------------------------------------------------------------
+" File Type Specific Settings
+" -----------------------------------------------------------------------------
+" Use 2 spaces for certain file types
+autocmd FileType javascript,typescript,json,yaml,html,css setlocal tabstop=2 shiftwidth=2 softtabstop=2
+
+" Enable spell checking for text files
+autocmd FileType markdown,text setlocal spell spelllang=en_us

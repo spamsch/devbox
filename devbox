@@ -1,0 +1,479 @@
+#!/bin/bash
+# =============================================================================
+# Devbox - Development Container Launcher
+# =============================================================================
+#
+# Launch and manage development containers for AI-assisted coding.
+#
+# Usage:
+#   devbox                  Start interactive shell in container
+#   devbox shell            Same as above
+#   devbox opencode         Start OpenCode directly
+#   devbox exec <cmd>       Run a command in the container
+#   devbox --rebuild        Force rebuild the Docker image
+#   devbox --clean          Remove container and data for current project
+#   devbox --info           Show container and project information
+#   devbox --help           Show this help message
+#
+# Each project directory gets its own isolated container with:
+#   - Separate shell history
+#   - Separate package caches
+#   - Shared base image (saves disk space)
+#
+# =============================================================================
+
+set -e  # Exit on error
+
+# -----------------------------------------------------------------------------
+# Configuration
+# -----------------------------------------------------------------------------
+DEVBOX_VERSION="1.0.0"
+
+# Image name - can be overridden with DEVBOX_IMAGE env var
+# Default uses local build, but can be set to ghcr.io/username/devbox:latest
+DEVBOX_IMAGE="${DEVBOX_IMAGE:-devbox:latest}"
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Data directory for persistent storage
+DEVBOX_DATA_DIR="${DEVBOX_DATA_DIR:-$HOME/.devbox}"
+
+# -----------------------------------------------------------------------------
+# Color Codes
+# -----------------------------------------------------------------------------
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+DIM='\033[2m'
+NC='\033[0m'  # No Color
+
+# -----------------------------------------------------------------------------
+# Helper Functions
+# -----------------------------------------------------------------------------
+
+log_info() {
+    echo -e "${BLUE}[devbox]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[devbox]${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[devbox]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[devbox]${NC} $1" >&2
+}
+
+# Generate a short hash from the project path for unique container naming
+get_project_hash() {
+    echo -n "$PWD" | md5sum | cut -c1-8
+}
+
+# Get a safe project name from the current directory
+get_project_name() {
+    basename "$PWD" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g'
+}
+
+# Check if Docker is available
+check_docker() {
+    if ! command -v docker &> /dev/null; then
+        log_error "Docker is not installed or not in PATH"
+        log_error "Please install Docker: https://docs.docker.com/get-docker/"
+        exit 1
+    fi
+    
+    if ! docker info &> /dev/null; then
+        log_error "Docker daemon is not running"
+        log_error "Please start Docker and try again"
+        exit 1
+    fi
+}
+
+# Check if the devbox image exists
+image_exists() {
+    docker image inspect "$DEVBOX_IMAGE" &> /dev/null
+}
+
+# Check if Dockerfile has changed since last build
+needs_rebuild() {
+    local dockerfile="$SCRIPT_DIR/Dockerfile"
+    local marker="$DEVBOX_DATA_DIR/.last-build"
+    
+    # If no marker exists, we need to build
+    if [ ! -f "$marker" ]; then
+        return 0
+    fi
+    
+    # If Dockerfile is newer than marker, rebuild
+    if [ "$dockerfile" -nt "$marker" ]; then
+        return 0
+    fi
+    
+    # Check entrypoint.sh too
+    if [ "$SCRIPT_DIR/entrypoint.sh" -nt "$marker" ]; then
+        return 0
+    fi
+    
+    return 1
+}
+
+# Build the Docker image
+build_image() {
+    local force="${1:-false}"
+    
+    log_info "Building devbox image..."
+    
+    # Build with user's UID/GID for proper file permissions
+    docker build \
+        --build-arg USER_ID="$(id -u)" \
+        --build-arg GROUP_ID="$(id -g)" \
+        --build-arg BUILD_TIMESTAMP="$(date +%s)" \
+        -t "$DEVBOX_IMAGE" \
+        "$SCRIPT_DIR"
+    
+    # Update build marker
+    mkdir -p "$DEVBOX_DATA_DIR"
+    touch "$DEVBOX_DATA_DIR/.last-build"
+    
+    log_success "Image built successfully"
+}
+
+# Ensure the image is ready
+ensure_image() {
+    if ! image_exists; then
+        log_info "Devbox image not found, building..."
+        build_image
+    elif needs_rebuild; then
+        log_info "Dockerfile changed, rebuilding..."
+        build_image
+    fi
+}
+
+# Get container name for current project
+get_container_name() {
+    local hash=$(get_project_hash)
+    echo "devbox-${hash}"
+}
+
+# Get data directory for current project
+get_data_dir() {
+    local hash=$(get_project_hash)
+    echo "$DEVBOX_DATA_DIR/projects/${hash}"
+}
+
+# Ensure project data directories exist
+ensure_data_dirs() {
+    local data_dir=$(get_data_dir)
+    
+    mkdir -p "$data_dir/config"
+    mkdir -p "$data_dir/cache"
+    mkdir -p "$data_dir/data"
+    mkdir -p "$data_dir/local/share"
+}
+
+# Build docker run arguments
+build_run_args() {
+    local container_name=$(get_container_name)
+    local data_dir=$(get_data_dir)
+    
+    local args=(
+        # Container name and cleanup
+        "--name" "$container_name"
+        "--rm"
+        
+        # Interactive terminal
+        "-it"
+        
+        # Hostname (shows project name in prompt)
+        "--hostname" "devbox"
+        
+        # Mount current directory as workspace
+        "-v" "$PWD:/workspace"
+        
+        # Mount persistent data directories
+        "-v" "$data_dir/config:/home/dev/.config"
+        "-v" "$data_dir/cache:/home/dev/.cache"
+        "-v" "$data_dir/data:/home/dev/.local/share"
+        
+        # Mount SSH keys (read-only for security)
+        "-v" "$HOME/.ssh:/home/dev/.ssh:ro"
+        
+        # Mount git config for import
+        "-v" "$HOME/.gitconfig:/tmp/host_gitconfig:ro"
+        
+        # Pass through environment variables
+        "-e" "HOST_PROJECT_DIR=$PWD"
+        "-e" "TERM=${TERM:-xterm-256color}"
+    )
+    
+    # Pass through API keys if set
+    if [ -n "$ANTHROPIC_API_KEY" ]; then
+        args+=("-e" "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY")
+    fi
+    
+    if [ -n "$OPENAI_API_KEY" ]; then
+        args+=("-e" "OPENAI_API_KEY=$OPENAI_API_KEY")
+    fi
+    
+    # Pass through GitHub token if set
+    if [ -n "$GH_TOKEN" ]; then
+        args+=("-e" "GH_TOKEN=$GH_TOKEN")
+    fi
+    if [ -n "$GITHUB_TOKEN" ]; then
+        args+=("-e" "GITHUB_TOKEN=$GITHUB_TOKEN")
+    fi
+    
+    # Mount direnv allow directory if it exists
+    if [ -d "$HOME/.local/share/direnv/allow" ]; then
+        args+=("-v" "$HOME/.local/share/direnv/allow:/tmp/host_direnv_allow:ro")
+    fi
+    
+    # Load project .env file if exists
+    if [ -f "$PWD/.env" ]; then
+        args+=("--env-file" "$PWD/.env")
+    fi
+    
+    echo "${args[@]}"
+}
+
+# Run the container
+run_container() {
+    local cmd=("$@")
+    
+    ensure_image
+    ensure_data_dirs
+    
+    local container_name=$(get_container_name)
+    
+    # Check if container is already running
+    if docker ps -q -f "name=$container_name" | grep -q .; then
+        log_info "Container already running, attaching..."
+        docker exec -it "$container_name" "${cmd[@]:-/bin/zsh}"
+        return
+    fi
+    
+    # Build run arguments
+    local run_args
+    read -ra run_args <<< "$(build_run_args)"
+    
+    # Run container
+    docker run "${run_args[@]}" "$DEVBOX_IMAGE" "${cmd[@]}"
+}
+
+# -----------------------------------------------------------------------------
+# Commands
+# -----------------------------------------------------------------------------
+
+cmd_shell() {
+    run_container /bin/zsh
+}
+
+cmd_opencode() {
+    run_container /bin/zsh -c "source ~/.zshrc && opencode"
+}
+
+cmd_exec() {
+    if [ $# -eq 0 ]; then
+        log_error "No command specified"
+        log_error "Usage: devbox exec <command>"
+        exit 1
+    fi
+    run_container "$@"
+}
+
+cmd_rebuild() {
+    log_info "Forcing image rebuild..."
+    build_image true
+}
+
+cmd_clean() {
+    local container_name=$(get_container_name)
+    local data_dir=$(get_data_dir)
+    local project_name=$(get_project_name)
+    
+    echo ""
+    echo -e "${BOLD}Clean devbox data for: ${CYAN}$PWD${NC}"
+    echo ""
+    echo "This will remove:"
+    echo "  - Container: $container_name (if running)"
+    echo "  - Data directory: $data_dir"
+    echo ""
+    
+    read -p "Are you sure? [y/N] " -n 1 -r
+    echo ""
+    
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        log_info "Cancelled"
+        exit 0
+    fi
+    
+    # Stop and remove container if running
+    if docker ps -q -f "name=$container_name" | grep -q .; then
+        log_info "Stopping container..."
+        docker stop "$container_name" &> /dev/null || true
+    fi
+    
+    # Remove container if exists
+    if docker ps -aq -f "name=$container_name" | grep -q .; then
+        log_info "Removing container..."
+        docker rm "$container_name" &> /dev/null || true
+    fi
+    
+    # Remove data directory
+    if [ -d "$data_dir" ]; then
+        log_info "Removing data directory..."
+        rm -rf "$data_dir"
+    fi
+    
+    log_success "Cleaned up successfully"
+}
+
+cmd_info() {
+    local container_name=$(get_container_name)
+    local data_dir=$(get_data_dir)
+    local project_hash=$(get_project_hash)
+    
+    echo ""
+    echo -e "${BOLD}${CYAN}Devbox Information${NC}"
+    echo "===================="
+    echo ""
+    
+    echo -e "${BOLD}Project:${NC}"
+    echo "  Path: $PWD"
+    echo "  Hash: $project_hash"
+    echo "  Container: $container_name"
+    echo "  Data: $data_dir"
+    echo ""
+    
+    echo -e "${BOLD}Image:${NC}"
+    if image_exists; then
+        local image_info=$(docker image inspect "$DEVBOX_IMAGE" --format '{{.Created}}' 2>/dev/null)
+        echo "  Name: $DEVBOX_IMAGE"
+        echo "  Created: $image_info"
+        echo "  Status: ready"
+    else
+        echo "  Name: $DEVBOX_IMAGE"
+        echo "  Status: not built"
+    fi
+    echo ""
+    
+    echo -e "${BOLD}Container Status:${NC}"
+    if docker ps -q -f "name=$container_name" | grep -q .; then
+        echo "  Status: running"
+        docker ps -f "name=$container_name" --format "  ID: {{.ID}}\n  Up: {{.Status}}"
+    elif docker ps -aq -f "name=$container_name" | grep -q .; then
+        echo "  Status: stopped"
+    else
+        echo "  Status: not created"
+    fi
+    echo ""
+    
+    echo -e "${BOLD}Data Directory:${NC}"
+    if [ -d "$data_dir" ]; then
+        echo "  Status: exists"
+        du -sh "$data_dir" 2>/dev/null | awk '{print "  Size: " $1}'
+    else
+        echo "  Status: not created"
+    fi
+    echo ""
+}
+
+cmd_help() {
+    cat << 'EOF'
+Devbox - Development Container Launcher
+
+Usage: devbox [command] [options]
+
+Commands:
+  (none)              Start interactive shell (default)
+  shell               Start interactive shell
+  opencode            Start OpenCode AI assistant
+  exec <cmd>          Run a command in the container
+
+Options:
+  --rebuild           Force rebuild the Docker image
+  --clean             Remove container and data for current project
+  --info              Show container and project information
+  --help, -h          Show this help message
+  --version, -v       Show version
+
+Examples:
+  devbox                      # Start shell in current directory
+  devbox opencode             # Start OpenCode
+  devbox exec npm install     # Run npm install in container
+  devbox exec python app.py   # Run Python script
+  devbox --rebuild            # Rebuild after Dockerfile changes
+  devbox --clean              # Clean up project data
+
+Environment Variables:
+  ANTHROPIC_API_KEY   API key for Anthropic (Claude)
+  OPENAI_API_KEY      API key for OpenAI
+  GH_TOKEN            GitHub personal access token
+  DEVBOX_DATA_DIR     Override default data directory (~/.devbox)
+  DEVBOX_IMAGE        Override default image (default: devbox:latest)
+                      Use ghcr.io/username/devbox:latest for pre-built image
+
+For more information, see: https://github.com/yourusername/devbox
+EOF
+}
+
+cmd_version() {
+    echo "devbox version $DEVBOX_VERSION"
+}
+
+# -----------------------------------------------------------------------------
+# Main
+# -----------------------------------------------------------------------------
+
+main() {
+    # Check Docker availability
+    check_docker
+    
+    # Parse command
+    case "${1:-}" in
+        --help|-h)
+            cmd_help
+            ;;
+        --version|-v)
+            cmd_version
+            ;;
+        --rebuild)
+            cmd_rebuild
+            ;;
+        --clean)
+            cmd_clean
+            ;;
+        --info)
+            cmd_info
+            ;;
+        shell)
+            cmd_shell
+            ;;
+        opencode)
+            cmd_opencode
+            ;;
+        exec)
+            shift
+            cmd_exec "$@"
+            ;;
+        "")
+            cmd_shell
+            ;;
+        *)
+            # Unknown command - try to run it as exec
+            log_warning "Unknown command: $1"
+            log_info "Running as: devbox exec $*"
+            cmd_exec "$@"
+            ;;
+    esac
+}
+
+# Run main
+main "$@"
