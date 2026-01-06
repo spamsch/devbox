@@ -1,0 +1,36 @@
+#!/bin/bash
+# =============================================================================
+# tmux-list - List active tmux sessions
+# =============================================================================
+
+BOLD=$'\033[1m'
+DIM=$'\033[2m'
+CYAN=$'\033[0;36m'
+GREEN=$'\033[0;32m'
+NC=$'\033[0m'
+
+# Check if tmux server is running
+if ! tmux list-sessions &>/dev/null; then
+    echo "No active tmux sessions"
+    echo ""
+    echo "Start one with: ${BOLD}tmux-dev [name] [directory]${NC}"
+    exit 0
+fi
+
+echo ""
+echo "${BOLD}${CYAN}Active Tmux Sessions${NC}"
+echo "===================="
+echo ""
+
+tmux list-sessions -F "#{session_name}|#{session_windows}|#{session_created}|#{pane_current_path}" | while IFS='|' read -r name windows created path; do
+    # Format creation time
+    created_fmt=$(date -d "@$created" "+%H:%M" 2>/dev/null || date -r "$created" "+%H:%M" 2>/dev/null || echo "??:??")
+    
+    echo "${GREEN}●${NC} ${BOLD}$name${NC}"
+    echo "    Windows: $windows | Started: $created_fmt"
+done
+
+echo ""
+echo "${DIM}Attach with: tmux attach -t <name>${NC}"
+echo "${DIM}Switch with: Ctrl+b s (inside tmux)${NC}"
+echo ""

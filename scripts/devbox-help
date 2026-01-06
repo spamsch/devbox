@@ -1,0 +1,108 @@
+#!/bin/bash
+# Devbox help - Display available commands and configuration
+
+BOLD=$'\033[1m'
+DIM=$'\033[2m'
+CYAN=$'\033[0;36m'
+GREEN=$'\033[0;32m'
+YELLOW=$'\033[0;33m'
+NC=$'\033[0m'
+
+cat << EOF
+
+${BOLD}${CYAN}Devbox Commands${NC}
+================
+
+${BOLD}Setup & Configuration${NC}
+  devbox-setup        Interactive setup wizard (git, GitHub CLI, API keys)
+  devbox-help         Show this help message
+
+${BOLD}Development Environment${NC}
+  opencode            Start OpenCode AI coding assistant
+  tmux-dev [name] [dir]  Start tmux session with 3-pane layout
+  tmux-list           List active tmux sessions
+
+${BOLD}Tmux Session Examples${NC}
+  tmux-dev                        Session 'dev' in /workspace
+  tmux-dev backend                Session 'backend' in /workspace
+  tmux-dev backend ./backend      Session 'backend' in ./backend
+  tmux-dev frontend ./frontend    Session 'frontend' in ./frontend
+
+${BOLD}PostgreSQL${NC}
+  pg-start            Start PostgreSQL server (auto-initializes on first run)
+  pg-stop             Stop PostgreSQL server
+  pg-status           Show PostgreSQL status and list databases
+
+${BOLD}Tailscale VPN${NC}
+  tailscale-up        Start Tailscale and authenticate
+  tailscale-down      Stop Tailscale
+
+${BOLD}${CYAN}Default Configuration${NC}
+======================
+
+${BOLD}Paths${NC}
+  Workspace:          /workspace
+  PostgreSQL data:    ~/.local/share/postgresql/
+  PostgreSQL socket:  ~/.local/share/postgresql/run/
+  Tailscale logs:     ~/.local/share/tailscale/
+
+${BOLD}PostgreSQL${NC}
+  Host:               localhost (or \$PGHOST for socket)
+  Port:               5432
+  Default database:   dev
+  Auth:               trust (local connections)
+
+${BOLD}Tools Installed${NC}
+  Shell:              zsh + oh-my-zsh + starship prompt
+  Editor:             vim
+  Python:             uv (fast package manager)
+  Node.js:            nvm (version manager)
+  Search:             ripgrep (rg), fd, fzf
+  Git:                git, gh (GitHub CLI)
+
+${BOLD}Tmux Shortcuts${NC}
+  Ctrl+b d            Detach from session
+  Ctrl+b D            Start dev layout (3 panes)
+  Ctrl+b [            Scroll mode (q to exit)
+  Ctrl+b c            New window
+  Ctrl+b n/p          Next/previous window
+  Ctrl+b %            Split vertical
+  Ctrl+b "            Split horizontal
+
+${BOLD}Zsh Aliases${NC}
+  gs                  git status
+  gd                  git diff
+  gc                  git commit
+  gp                  git push
+  gl                  git log --oneline -20
+  ll                  ls -alF
+  py                  python3
+
+${BOLD}Environment Variables${NC}
+  ANTHROPIC_API_KEY   API key for Anthropic (Claude)
+  OPENAI_API_KEY      API key for OpenAI
+  GH_TOKEN            GitHub personal access token
+  PGHOST              PostgreSQL socket directory
+
+${BOLD}${CYAN}Common Tasks${NC}
+==============
+
+${BOLD}Clone a Repository${NC}
+  gh repo clone owner/repo        Clone from GitHub
+  gh repo clone owner/repo ./dir  Clone to specific directory
+  git clone <url>                 Clone via git URL
+
+${BOLD}GitHub CLI Authentication${NC}
+  gh auth login                   Authenticate with GitHub
+  gh auth status                  Check authentication status
+
+${BOLD}Start Working on a Project${NC}
+  cd /workspace
+  gh repo clone myorg/backend ./backend
+  gh repo clone myorg/frontend ./frontend
+  tmux-dev backend ./backend      Start backend session
+  # Ctrl+b d to detach
+  tmux-dev frontend ./frontend    Start frontend session
+  tmux-list                       See all sessions
+
+EOF

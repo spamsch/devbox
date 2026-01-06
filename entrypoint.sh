@@ -242,13 +242,23 @@ show_welcome() {
             echo -e "    cd /workspace && git clone <url>"
         fi
         echo ""
-        echo -e "  Run ${BOLD}opencode${NC} to start coding."
+        echo -e "  Run ${BOLD}opencode${NC} to start coding or ${BOLD}devbox-help${NC} for all commands."
         echo ""
     else
         echo ""
-        echo -e "  Run ${BOLD}opencode${NC} to start coding or ${BOLD}devbox-setup${NC} to reconfigure."
+        echo -e "  Run ${BOLD}opencode${NC} to start coding or ${BOLD}devbox-help${NC} for all commands."
         echo ""
     fi
+}
+
+# -----------------------------------------------------------------------------
+# PostgreSQL Setup
+# -----------------------------------------------------------------------------
+# Start PostgreSQL in the background for development use.
+# -----------------------------------------------------------------------------
+setup_postgresql() {
+    # Start PostgreSQL silently in background
+    pg-start > /dev/null 2>&1 &
 }
 
 # -----------------------------------------------------------------------------
@@ -260,6 +270,9 @@ main() {
     setup_git_config
     setup_ssh_permissions
     setup_direnv
+    
+    # Start background services
+    setup_postgresql
     
     # Check if interactive terminal
     if [ -t 0 ] && [ -t 1 ]; then

@@ -1,0 +1,16 @@
+#!/bin/bash
+# PostgreSQL stop script for devbox
+
+PG_DATA="/home/dev/.local/share/postgresql/data"
+PG_VERSION=$(ls /usr/lib/postgresql/ | head -1)
+PG_BIN="/usr/lib/postgresql/${PG_VERSION}/bin"
+
+if [ ! -f "$PG_DATA/postmaster.pid" ]; then
+    echo "PostgreSQL is not running"
+    exit 0
+fi
+
+echo "Stopping PostgreSQL..."
+"$PG_BIN/pg_ctl" -D "$PG_DATA" stop -m fast
+
+echo "PostgreSQL stopped"

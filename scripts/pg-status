@@ -1,0 +1,18 @@
+#!/bin/bash
+# PostgreSQL status script for devbox
+
+PG_DATA="/home/dev/.local/share/postgresql/data"
+PG_RUN="/home/dev/.local/share/postgresql/run"
+PG_VERSION=$(ls /usr/lib/postgresql/ | head -1)
+PG_BIN="/usr/lib/postgresql/${PG_VERSION}/bin"
+
+if "$PG_BIN/pg_isready" -h "$PG_RUN" -q 2>/dev/null; then
+    echo "PostgreSQL is running on localhost:5432"
+    echo "Socket: $PG_RUN"
+    echo ""
+    echo "Databases:"
+    psql -h "$PG_RUN" -l 2>/dev/null | head -10
+else
+    echo "PostgreSQL is not running"
+    echo "Start with: pg-start"
+fi

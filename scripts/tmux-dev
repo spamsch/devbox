@@ -12,12 +12,23 @@
 #   └────────────────────┴────────────────────┘
 #
 # Usage:
-#   tmux-dev              Start new session named 'dev'
-#   tmux-dev myproject    Start new session named 'myproject'
+#   tmux-dev                        Start session 'dev' in /workspace
+#   tmux-dev backend                Start session 'backend' in /workspace
+#   tmux-dev backend ./backend      Start session 'backend' in ./backend
+#   tmux-dev frontend ~/frontend    Start session 'frontend' in ~/frontend
 #
 # =============================================================================
 
 SESSION_NAME="${1:-dev}"
+WORK_DIR="${2:-/workspace}"
+
+# Resolve to absolute path
+if [[ "$WORK_DIR" != /* ]]; then
+    WORK_DIR="$(cd "$WORK_DIR" 2>/dev/null && pwd)" || {
+        echo "Error: Directory '$2' does not exist"
+        exit 1
+    }
+fi
 
 # Check if session already exists
 if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
@@ -26,11 +37,19 @@ if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
     exit 0
 fi
 
-# Create new session (detached)
-tmux new-session -d -s "$SESSION_NAME" -c /workspace
+echo "Creating session '$SESSION_NAME' in $WORK_DIR"
 
-# Apply the dev layout
-tmux source-file ~/.tmux/dev-layout.conf
+# Create new session (detached) in the specified directory
+tmux new-session -d -s "$SESSION_NAME" -c "$WORK_DIR"
+
+# Split window horizontally (creates right pane) - 40% width
+tmux split-window -h -p 40 -c "$WORK_DIR"
+
+# Split the right pane vertically (creates bottom-right pane) - 50% height
+tmux split-window -v -p 50 -c "$WORK_DIR"
+
+# Select the left (main) pane
+tmux select-pane -t 0
 
 # Attach to the session
 tmux attach-session -t "$SESSION_NAME"

@@ -71,6 +71,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client \
     iputils-ping \
     telnet \
+    # Process tools
+    procps \
+    # Database
+    postgresql \
+    postgresql-client \
     # Python build dependencies (for packages with native extensions)
     python3-dev \
     && \
@@ -277,12 +282,22 @@ USER ${USERNAME}
 USER root
 COPY scripts/setup.sh /usr/local/bin/devbox-setup
 COPY scripts/tmux-dev /usr/local/bin/tmux-dev
+COPY scripts/tmux-list /usr/local/bin/tmux-list
 COPY scripts/tailscale-up /usr/local/bin/tailscale-up
 COPY scripts/tailscale-down /usr/local/bin/tailscale-down
+COPY scripts/pg-start /usr/local/bin/pg-start
+COPY scripts/pg-stop /usr/local/bin/pg-stop
+COPY scripts/pg-status /usr/local/bin/pg-status
+COPY scripts/devbox-help /usr/local/bin/devbox-help
 RUN chmod +x /usr/local/bin/devbox-setup \
              /usr/local/bin/tmux-dev \
+             /usr/local/bin/tmux-list \
              /usr/local/bin/tailscale-up \
-             /usr/local/bin/tailscale-down
+             /usr/local/bin/tailscale-down \
+             /usr/local/bin/pg-start \
+             /usr/local/bin/pg-stop \
+             /usr/local/bin/pg-status \
+             /usr/local/bin/devbox-help
 USER ${USERNAME}
 
 # Switch to root to copy entrypoint to system location

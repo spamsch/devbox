@@ -1,0 +1,72 @@
+#!/bin/bash
+# PostgreSQL start script for devbox
+# Starts PostgreSQL in the background
+
+set -e
+
+PG_BASE="/home/dev/.local/share/postgresql"
+PG_DATA="$PG_BASE/data"
+PG_RUN="$PG_BASE/run"
+PG_LOG="$PG_BASE/postgresql.log"
+PG_VERSION=$(ls /usr/lib/postgresql/ | head -1)
+PG_BIN="/usr/lib/postgresql/${PG_VERSION}/bin"
+
+# Ensure run directory exists
+mkdir -p "$PG_RUN"
+
+# Check if already running
+if [ -f "$PG_DATA/postmaster.pid" ]; then
+    if "$PG_BIN/pg_isready" -h "$PG_RUN" -q 2>/dev/null; then
+        echo "PostgreSQL is already running"
+        exit 0
+    else
+        # Stale pid file
+        rm -f "$PG_DATA/postmaster.pid"
+    fi
+fi
+
+# Initialize database if needed
+if [ ! -f "$PG_DATA/PG_VERSION" ]; then
+    echo "Initializing PostgreSQL database..."
+    rm -rf "$PG_DATA" 2>/dev/null || true
+    "$PG_BIN/initdb" -D "$PG_DATA" --auth=trust --encoding=UTF8 --locale=en_US.UTF-8
+    
+    # Configure for local development
+    echo "host all all 127.0.0.1/32 trust" >> "$PG_DATA/pg_hba.conf"
+    echo "host all all ::1/128 trust" >> "$PG_DATA/pg_hba.conf"
+    
+    # Listen on localhost only, use custom socket directory
+    cat >> "$PG_DATA/postgresql.conf" << EOF
+listen_addresses = 'localhost'
+port = 5432
+unix_socket_directories = '$PG_RUN'
+EOF
+    
+    echo "PostgreSQL initialized"
+fi
+
+echo "Starting PostgreSQL..."
+"$PG_BIN/pg_ctl" -D "$PG_DATA" -l "$PG_LOG" -o "-k $PG_RUN" start
+
+# Wait for it to be ready
+for i in $(seq 1 10); do
+    if "$PG_BIN/pg_isready" -h "$PG_RUN" -q 2>/dev/null; then
+        break
+    fi
+    sleep 0.5
+done
+
+if "$PG_BIN/pg_isready" -h "$PG_RUN" -q 2>/dev/null; then
+    echo "PostgreSQL is running on localhost:5432"
+    echo "Log file: $PG_LOG"
+    
+    # Create default database for the user if it doesn't exist
+    if ! psql -h "$PG_RUN" -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw dev; then
+        createdb -h "$PG_RUN" dev 2>/dev/null || true
+        echo "Created default database 'dev'"
+    fi
+else
+    echo "ERROR: PostgreSQL failed to start. Check log: $PG_LOG"
+    tail -20 "$PG_LOG"
+    exit 1
+fi

@@ -191,7 +191,7 @@ ensure_data_dirs() {
     mkdir -p "$data_dir/config"
     mkdir -p "$data_dir/cache"
     mkdir -p "$data_dir/data"
-    mkdir -p "$data_dir/local/share"
+    mkdir -p "$data_dir/data/postgresql"
 }
 
 # Build docker run arguments
@@ -316,6 +316,11 @@ cmd_exec() {
 cmd_rebuild() {
     local no_cache="${1:-false}"
     log_info "Forcing image rebuild..."
+    
+    # Stop and remove all devbox containers so they use the new image
+    log_info "Stopping all devbox containers..."
+    docker ps -aq --filter "name=devbox-" | xargs -r docker rm -f 2>/dev/null || true
+    
     build_image "$no_cache"
 }
 

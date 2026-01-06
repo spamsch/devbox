@@ -75,6 +75,12 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 
 # -----------------------------------------------------------------------------
+# PostgreSQL Configuration
+# -----------------------------------------------------------------------------
+# Use local socket directory for PostgreSQL connections
+export PGHOST="$HOME/.local/share/postgresql/run"
+
+# -----------------------------------------------------------------------------
 # fzf Configuration
 # -----------------------------------------------------------------------------
 # Use fd (faster alternative to find) for fzf if available
