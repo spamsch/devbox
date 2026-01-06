@@ -13,11 +13,9 @@
 FROM debian:bookworm
 
 # -----------------------------------------------------------------------------
-# Version
+# Version (set via build arg)
 # -----------------------------------------------------------------------------
 ARG DEVBOX_VERSION=dev
-ENV DEVBOX_VERSION=${DEVBOX_VERSION}
-LABEL org.opencontainers.image.version="${DEVBOX_VERSION}"
 
 # -----------------------------------------------------------------------------
 # Environment Configuration
@@ -345,6 +343,15 @@ USER ${USERNAME}
 # Set the default working directory to /workspace where projects are mounted.
 # -----------------------------------------------------------------------------
 WORKDIR /workspace
+
+# -----------------------------------------------------------------------------
+# Version Environment Variable
+# -----------------------------------------------------------------------------
+# Set the version from build arg (must re-declare ARG after FROM)
+# -----------------------------------------------------------------------------
+ARG DEVBOX_VERSION=dev
+ENV DEVBOX_VERSION=${DEVBOX_VERSION}
+LABEL org.opencontainers.image.version="${DEVBOX_VERSION}"
 
 # -----------------------------------------------------------------------------
 # Entrypoint and Default Command

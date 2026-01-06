@@ -33,8 +33,6 @@ set -e  # Exit on error
 # -----------------------------------------------------------------------------
 # Configuration
 # -----------------------------------------------------------------------------
-DEVBOX_VERSION="1.0.0"
-
 # Image name - can be overridden with DEVBOX_IMAGE env var
 # Default uses local build, but can be set to ghcr.io/username/devbox:latest
 DEVBOX_IMAGE="${DEVBOX_IMAGE:-devbox:latest}"
@@ -672,7 +670,11 @@ EOF
 }
 
 cmd_version() {
-    echo "devbox version $DEVBOX_VERSION"
+    local version="dev"
+    if [ -f "$SCRIPT_DIR/VERSION" ]; then
+        version=$(cat "$SCRIPT_DIR/VERSION" | tr -d '[:space:]')
+    fi
+    echo "devbox version $version"
 }
 
 # -----------------------------------------------------------------------------

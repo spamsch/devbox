@@ -20,7 +20,7 @@ set -e  # Exit on error
 # Constants
 # -----------------------------------------------------------------------------
 DEVBOX_MARKER="$HOME/.devbox-initialized"
-DEVBOX_VERSION="1.0.0"
+# DEVBOX_VERSION is set via environment variable from Dockerfile
 
 # -----------------------------------------------------------------------------
 # Color Codes (for terminal output)
