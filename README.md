@@ -4,6 +4,22 @@ A Docker-based development environment for AI-assisted coding with [OpenCode](ht
 
 ## Quick Start
 
+### Option A: On a Server (just Docker needed)
+
+```bash
+docker run -it --name devbox ghcr.io/spamsch/devbox:latest
+
+# Inside container
+devbox-setup                    # Configure git & GitHub
+gh auth login                   # Authenticate
+gh repo clone owner/repo        # Clone your code
+opencode                        # Start coding
+```
+
+Container persists after exit. Reattach with `docker start -ai devbox`.
+
+### Option B: Local Development (mount your project)
+
 ```bash
 # Install
 git clone https://github.com/spamsch/devbox.git ~/.devbox-source
@@ -20,9 +36,7 @@ devbox-help           # Show all commands
 
 First run builds the image (~5 min). Subsequent starts are instant.
 
-## Standalone Mode (No Host Mounts)
-
-For remote servers or fully isolated environments:
+### Option C: Standalone Mode (isolated with volumes)
 
 ```bash
 devbox --standalone myproject
@@ -33,6 +47,8 @@ gh auth login                   # Authenticate
 gh repo clone owner/repo        # Clone your code
 opencode                        # Start coding
 ```
+
+Uses Docker volumes for persistence. List sessions with `devbox --standalone-list`.
 
 ---
 
