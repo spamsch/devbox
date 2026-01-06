@@ -137,12 +137,19 @@ needs_rebuild() {
 build_image() {
     local no_cache="${1:-false}"
     
-    log_info "Building devbox image..."
+    # Read version from VERSION file
+    local version="dev"
+    if [ -f "$SCRIPT_DIR/VERSION" ]; then
+        version=$(cat "$SCRIPT_DIR/VERSION" | tr -d '[:space:]')
+    fi
+    
+    log_info "Building devbox image (version: $version)..."
     
     local build_args=(
         --build-arg "USER_ID=$(id -u)"
         --build-arg "GROUP_ID=$(id -g)"
         --build-arg "BUILD_TIMESTAMP=$(date +%s)"
+        --build-arg "DEVBOX_VERSION=$version"
         -t "$DEVBOX_IMAGE"
     )
     

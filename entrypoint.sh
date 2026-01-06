@@ -219,7 +219,7 @@ show_welcome() {
     local opencode_version=$(opencode --version 2>/dev/null || echo "not found")
     
     echo ""
-    echo -e "${BOLD}${CYAN}Devbox${NC} - Development Environment"
+    echo -e "${BOLD}${CYAN}Devbox${NC} ${DIM}v${DEVBOX_VERSION:-dev}${NC}"
     echo -e "────────────────────────────────────────────────────"
     if [ "$is_standalone" = "1" ]; then
         echo -e "  ${BOLD}Mode:${NC}       Standalone (session: ${DEVBOX_SESSION:-devbox})"

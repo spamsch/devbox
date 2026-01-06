@@ -77,6 +77,16 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # -----------------------------------------------------------------------
+      # Read version from VERSION file
+      # -----------------------------------------------------------------------
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      # -----------------------------------------------------------------------
       # Extract metadata for Docker
       # -----------------------------------------------------------------------
       # Generate tags and labels for the image
@@ -89,6 +99,8 @@ jobs:
           tags: |
             # Set 'latest' tag for release branch
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/release' }}
+            # Set version tag
+            type=raw,value=${{ steps.version.outputs.version }}
             # Set SHA tag for traceability
             type=sha,prefix=sha-
 
@@ -110,6 +122,7 @@ jobs:
           # Build arguments
           build-args: |
             BUILD_TIMESTAMP=${{ github.run_id }}
+            DEVBOX_VERSION=${{ steps.version.outputs.version }}
 
       # -----------------------------------------------------------------------
       # Output image info

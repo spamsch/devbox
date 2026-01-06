@@ -13,6 +13,13 @@
 FROM debian:bookworm
 
 # -----------------------------------------------------------------------------
+# Version
+# -----------------------------------------------------------------------------
+ARG DEVBOX_VERSION=dev
+ENV DEVBOX_VERSION=${DEVBOX_VERSION}
+LABEL org.opencontainers.image.version="${DEVBOX_VERSION}"
+
+# -----------------------------------------------------------------------------
 # Environment Configuration
 # -----------------------------------------------------------------------------
 # Prevent interactive prompts during apt installations
