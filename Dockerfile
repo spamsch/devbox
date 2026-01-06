@@ -83,6 +83,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Database
     postgresql \
     postgresql-client \
+    postgresql-15-pgvector \
     # Python build dependencies (for packages with native extensions)
     python3-dev \
     && \

@@ -80,13 +80,19 @@ read_with_default() {
     local result
     
     if [ -n "$default" ]; then
-        echo -en "${prompt} ${DIM}[$default]${NC}: "
+        printf "%s %b[%s]%b: " "$prompt" "$DIM" "$default" "$NC"
     else
-        echo -en "${prompt}: "
+        printf "%s: " "$prompt"
     fi
     
-    read result
-    echo "${result:-$default}"
+    read -r result
+    
+    # Return the result (use default if empty)
+    if [ -n "$result" ]; then
+        printf "%s" "$result"
+    else
+        printf "%s" "$default"
+    fi
 }
 
 # Read password/secret (hidden input)
@@ -133,6 +139,10 @@ setup_git() {
     local current_name=$(git config --global user.name 2>/dev/null || echo "")
     local current_email=$(git config --global user.email 2>/dev/null || echo "")
     
+    # Filter out placeholder defaults
+    [ "$current_name" = "Developer" ] && current_name=""
+    [ "$current_email" = "dev@devbox" ] && current_email=""
+    
     # Show current status
     if [ -n "$current_name" ] && [ -n "$current_email" ]; then
         print_info "Current git identity: $current_name <$current_email>"
@@ -148,14 +158,28 @@ setup_git() {
     echo ""
     
     # Get name
-    local name=$(read_with_default "  Your name" "$current_name")
+    local name
+    if [ -n "$current_name" ]; then
+        printf "  ${BOLD}Name${NC} ${DIM}[%s]${NC}: " "$current_name"
+    else
+        printf "  ${BOLD}Name${NC}: "
+    fi
+    read -r name
+    name="${name:-$current_name}"
     if [ -n "$name" ]; then
         git config --global user.name "$name"
         print_success "Name set to: $name"
     fi
     
     # Get email
-    local email=$(read_with_default "  Your email" "$current_email")
+    local email
+    if [ -n "$current_email" ]; then
+        printf "  ${BOLD}Email${NC} ${DIM}[%s]${NC}: " "$current_email"
+    else
+        printf "  ${BOLD}Email${NC}: "
+    fi
+    read -r email
+    email="${email:-$current_email}"
     if [ -n "$email" ]; then
         git config --global user.email "$email"
         print_success "Email set to: $email"

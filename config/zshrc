@@ -121,6 +121,13 @@ export FZF_ALT_C_OPTS='
 eval "$(direnv hook zsh)"
 
 # -----------------------------------------------------------------------------
+# LS Colors Configuration
+# -----------------------------------------------------------------------------
+# Change directory color from blue to cyan (easier to read)
+# di=directory, ln=symlink, ex=executable, etc.
+export LS_COLORS='di=1;36:ln=1;35:so=1;31:pi=33:ex=1;32:bd=34;46:cd=34;43:su=30;41:sg=30;46:tw=30;42:ow=30;43'
+
+# -----------------------------------------------------------------------------
 # Aliases - General
 # -----------------------------------------------------------------------------
 # Directory listing (using ls with colors)
