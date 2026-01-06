@@ -139,9 +139,13 @@ main() {
     
     # Update release branch
     log_info "Updating release branch..."
-    git checkout release 2>/dev/null || git checkout -b release
-    git merge main --no-edit
-    git push origin release
+    if git show-ref --verify --quiet refs/heads/release; then
+        git checkout release
+        git merge main --no-edit
+    else
+        git checkout -b release
+    fi
+    git push -u origin release
     
     # Back to main
     git checkout main
