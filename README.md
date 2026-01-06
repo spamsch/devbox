@@ -18,6 +18,19 @@ opencode                        # Start coding
 
 Container persists after exit. Reattach with `docker start -ai devbox`.
 
+**With Tailscale VPN:**
+
+```bash
+docker run -it --name devbox \
+  --cap-add=NET_ADMIN --cap-add=NET_RAW \
+  --device=/dev/net/tun \
+  -v devbox-tailscale:/var/lib/tailscale \
+  ghcr.io/spamsch/devbox:latest
+
+# Inside container
+tailscale-up                    # Start Tailscale and authenticate
+```
+
 ### Option B: Local Development (mount your project)
 
 ```bash
