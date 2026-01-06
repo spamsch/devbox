@@ -1,518 +1,251 @@
 # Devbox
 
-A Docker-based development environment for AI-assisted coding with [OpenCode](https://opencode.ai/), Python, and JavaScript.
-
-## Features
-
-- **OpenCode** - Open source AI coding agent pre-installed
-- **Python** - Managed via `uv` (fast Python package manager)
-- **Node.js** - Managed via `nvm` (Node Version Manager)
-- **Modern Shell** - zsh with oh-my-zsh, starship prompt, and fzf
-- **tmux** - Terminal multiplexer for session management
-- **Per-Project Isolation** - Each project gets its own container data
-- **Sensible Defaults** - Works out of the box, customize as needed
-
-## Prerequisites
-
-- **Docker** - Must be installed and running (see [Installing Docker](#installing-docker) below)
-- **Nerd Font** - Required for the starship prompt icons
-  - Install from [nerdfonts.com](https://www.nerdfonts.com/)
-  - Recommended: JetBrainsMono Nerd Font, FiraCode Nerd Font, or Hack Nerd Font
-  - Configure your terminal to use the Nerd Font
+A Docker-based development environment for AI-assisted coding with [OpenCode](https://opencode.ai/).
 
 ## Quick Start
 
-### 1. Install
-
-Clone this repository and add `devbox` to your PATH:
-
 ```bash
+# Install
 git clone https://github.com/spamsch/devbox.git ~/.devbox-source
 ln -s ~/.devbox-source/devbox ~/.local/bin/devbox
-```
 
-### Using Pre-built Image
-
-A pre-built image is available from GitHub Container Registry at [github.com/spamsch/devbox](https://github.com/spamsch/devbox):
-
-```bash
-# Pull the pre-built image
-docker pull ghcr.io/spamsch/devbox:latest
-
-# Set it as your default image
-export DEVBOX_IMAGE=ghcr.io/spamsch/devbox:latest
-
-# Or add to your shell profile for persistence
-echo 'export DEVBOX_IMAGE=ghcr.io/spamsch/devbox:latest' >> ~/.bashrc
-```
-
-Then use `devbox` as normal - it will use the pre-built image instead of building locally.
-
-You can also run the image directly without the devbox script:
-
-```bash
-docker run -it --rm \
-  -v $(pwd):/workspace \
-  -v ~/.ssh:/home/dev/.ssh:ro \
-  ghcr.io/spamsch/devbox:latest
-```
-
-### 2. Run
-
-Navigate to any project directory and run:
-
-```bash
+# Run (in any project directory)
 cd ~/my-project
 devbox
+
+# Inside container
+opencode              # Start AI coding assistant
+devbox-help           # Show all commands
 ```
 
-The first run will:
-1. Build the Docker image (takes a few minutes)
-2. Start an interactive shell in the container
-3. Show the setup wizard for first-time configuration
+First run builds the image (~5 min). Subsequent starts are instant.
 
-### 3. Start Coding
+## Standalone Mode (No Host Mounts)
 
-```bash
-# Start OpenCode AI assistant
-opencode
-
-# Or run it directly from outside the container
-devbox opencode
-```
-
-## Usage
+For remote servers or fully isolated environments:
 
 ```bash
-devbox                      # Start interactive shell (default)
-devbox shell                # Same as above
-devbox opencode             # Start OpenCode AI assistant
-devbox exec <cmd>           # Run a command in the container
-devbox --standalone [name]  # Start isolated container (no host mounts)
-devbox --standalone-list    # List all standalone sessions
-devbox --standalone-rm <n>  # Remove a standalone session
-devbox --rebuild            # Force rebuild the Docker image
-devbox --clean              # Remove container and data for current project
-devbox --info               # Show container and project information
-devbox --help               # Show help message
-```
-
-### Examples
-
-```bash
-# Start working on a project
-cd ~/projects/my-app
-devbox
-
-# Run Python scripts
-devbox exec python app.py
-
-# Run npm commands
-devbox exec npm install
-devbox exec npm test
-
-# Run multiple commands
-devbox exec bash -c "npm install && npm test"
-```
-
-## Standalone Mode
-
-Standalone mode runs a fully isolated container using Docker named volumes instead of mounting host directories. This is useful for:
-
-- Remote servers where you don't want code on the host
-- Fully isolated development environments
-- Cloning and working on repos entirely inside the container
-
-### Usage
-
-```bash
-# Start a standalone session (default name: 'devbox')
-devbox --standalone
-
-# Start a named standalone session
 devbox --standalone myproject
 
-# List all standalone sessions
-devbox --standalone-list
-
-# Remove a standalone session and all its data
-devbox --standalone-rm myproject
+# Inside container
+devbox-setup                    # Configure git & GitHub
+gh auth login                   # Authenticate
+gh repo clone owner/repo        # Clone your code
+opencode                        # Start coding
 ```
 
-### Workflow Example
+---
+
+## Commands Reference
+
+### Host Commands
 
 ```bash
-# On a remote server, start a standalone session
-devbox --standalone myproject
-
-# Inside the container:
-devbox-setup                      # Configure git, GitHub CLI
-gh auth login                     # Authenticate with GitHub
-gh repo clone owner/my-repo       # Clone your repository
-cd my-repo
-opencode                          # Start coding
-
-# Detach with Ctrl+D or 'exit', container keeps running
-# Re-attach anytime with:
-devbox --standalone myproject
+devbox                      # Start shell in current directory
+devbox opencode             # Start OpenCode directly
+devbox exec <cmd>           # Run command in container
+devbox --standalone [name]  # Isolated container with Docker volumes
+devbox --standalone-list    # List standalone sessions
+devbox --standalone-rm <n>  # Remove standalone session
+devbox --tailscale          # Enable Tailscale VPN support
+devbox --rebuild            # Rebuild Docker image
+devbox --rebuild --no-cache # Full rebuild without cache
+devbox --clean              # Remove project data
+devbox --info               # Show container info
 ```
 
-### Data Persistence
+### Container Commands
 
-Standalone sessions use Docker named volumes:
-- `devbox-<name>-workspace` - Your code and projects
-- `devbox-<name>-config` - Tool configurations
-- `devbox-<name>-cache` - Package caches
-- `devbox-<name>-data` - Persistent app data
+```bash
+devbox-help                 # Show all commands and configuration
+devbox-setup                # Configure git, GitHub CLI, API keys
+opencode                    # Start OpenCode AI assistant
 
-Data persists until you explicitly remove it with `devbox --standalone-rm <name>`.
+# Tmux sessions (multiple projects)
+tmux-dev                    # Session 'dev' in /workspace
+tmux-dev backend ./backend  # Session 'backend' in ./backend
+tmux-dev frontend ./frontend
+tmux-list                   # List active sessions
 
-## First-Time Setup
+# PostgreSQL
+pg-start                    # Start PostgreSQL (auto-init on first run)
+pg-stop                     # Stop PostgreSQL
+pg-status                   # Show status and databases
 
-When you first enter a container, you'll see:
-
-```
-Devbox - Development Environment
-────────────────────────────────────────────────────
-  Project:    /workspace
-  Python:     3.11.x (uv available)
-  Node.js:    v20.x.x
-  OpenCode:   x.x.x
-────────────────────────────────────────────────────
-
-  First time setup!
-  Run devbox-setup to configure git and GitHub CLI.
-  Run opencode to start coding.
+# Tailscale VPN
+tailscale-up                # Start and authenticate
+tailscale-down              # Stop Tailscale
 ```
 
-Run `devbox-setup` to configure:
+---
 
-1. **Git identity** - Your name and email for commits
-2. **GitHub CLI** - Authentication for repository operations
+## Working with Multiple Projects
 
-OpenCode works out of the box with free models, or you can:
-- Use your **Claude Pro/Max** account via browser login
-- Set `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` for API access
-- Connect 75+ providers through [Models.dev](https://models.dev)
+```bash
+# Clone repos
+cd /workspace
+gh repo clone myorg/backend ./backend
+gh repo clone myorg/frontend ./frontend
 
-You can re-run `devbox-setup` anytime to update your configuration.
+# Start separate tmux sessions
+tmux-dev backend ./backend
+# Ctrl+b d to detach
+
+tmux-dev frontend ./frontend
+# Ctrl+b d to detach
+
+# Switch between sessions
+tmux-list                   # See all sessions
+tmux attach -t backend      # Attach to backend
+```
+
+---
+
+## What's Included
+
+| Category | Tools |
+|----------|-------|
+| **AI** | OpenCode |
+| **Languages** | Python 3 (uv), Node.js LTS (nvm) |
+| **Database** | PostgreSQL 15 |
+| **Shell** | zsh, oh-my-zsh, starship prompt, fzf |
+| **Dev Tools** | git, gh, vim, tmux, htop, direnv |
+| **Search** | ripgrep (rg), fd, fzf |
+| **Network** | Tailscale VPN, ping, telnet |
+
+---
+
+## Prerequisites
+
+- **Docker** - [Install Docker](https://docs.docker.com/get-docker/)
+- **Nerd Font** - Required for prompt icons ([nerdfonts.com](https://www.nerdfonts.com/))
+
+---
+
+## Pre-built Image
+
+Skip local builds:
+
+```bash
+export DEVBOX_IMAGE=ghcr.io/spamsch/devbox:latest
+# Add to ~/.bashrc or ~/.zshrc for persistence
+```
+
+---
 
 ## Authentication
 
 ### OpenCode
 
-OpenCode includes free models out of the box. Just run:
-
-```bash
-opencode
-```
-
-For additional models, you have several options:
-
-#### Option 1: Claude Pro/Max (Recommended)
-
-If you have a Claude Pro or Max subscription:
+Works out of the box with free models. For more options:
 
 ```bash
 # Inside opencode, run:
 /connect
 
-# Select: Anthropic → Claude Pro/Max
-# Authenticate via browser when prompted
+# Options:
+# - Claude Pro/Max (browser auth)
+# - API keys (Anthropic, OpenAI, etc.)
+# - 75+ providers via Models.dev
 ```
 
-#### Option 2: API Keys
+### API Keys
 
-Set environment variables before running devbox:
+Set before running devbox:
 
 ```bash
-# Set in your shell profile (~/.bashrc, ~/.zshrc)
 export ANTHROPIC_API_KEY="sk-ant-..."
 export OPENAI_API_KEY="sk-..."
-
-# Or use a project .env file
-echo "ANTHROPIC_API_KEY=sk-ant-..." >> .env
+export GH_TOKEN="ghp_..."
 ```
 
-Environment variables are automatically passed to the container.
+Or use a `.env` file in your project directory.
 
-#### Option 3: Other Providers
-
-OpenCode supports 75+ providers including OpenAI, Google, xAI, DeepSeek, and local models via Ollama.
-
-```bash
-# Inside opencode, run:
-/connect
-
-# Select your provider and follow the prompts
-```
-
-See [OpenCode providers docs](https://opencode.ai/docs/providers) for the full list.
-
-## Included Tools
-
-### Languages & Package Managers
-
-| Tool | Description |
-|------|-------------|
-| Python 3 | Latest stable version |
-| uv | Fast Python package manager |
-| Node.js | LTS version via nvm |
-| npm | Node package manager |
-
-### Development Tools
-
-| Tool | Description |
-|------|-------------|
-| git | Version control |
-| gh | GitHub CLI |
-| vim | Text editor (with sensible config) |
-| tmux | Terminal multiplexer |
-| htop | Process viewer |
-
-### Search Tools
-
-| Tool | Description |
-|------|-------------|
-| ripgrep (`rg`) | Fast text search |
-| fd | Fast file finder |
-| fzf | Fuzzy finder |
-
-### Shell
-
-| Tool | Description |
-|------|-------------|
-| zsh | Shell with oh-my-zsh |
-| starship | Cross-shell prompt (gruvbox-rainbow theme) |
-| direnv | Directory-specific env vars |
-
-**Note:** The starship prompt uses the Gruvbox Rainbow preset which requires a [Nerd Font](https://www.nerdfonts.com/) installed in your terminal. Recommended: JetBrainsMono Nerd Font, FiraCode Nerd Font, or Hack Nerd Font.
+---
 
 ## Keyboard Shortcuts
 
-### fzf (Fuzzy Finder)
+### tmux
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+b d` | Detach (session keeps running) |
+| `Ctrl+b s` | List and switch sessions |
+| `Ctrl+b c` | New window |
+| `Ctrl+b n/p` | Next/previous window |
+| `Ctrl+b %` | Split vertical |
+| `Ctrl+b "` | Split horizontal |
+| `Ctrl+b h/j/k/l` | Navigate panes |
+
+### fzf
 
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+R` | Search command history |
-| `Ctrl+T` | Find files in current directory |
-| `Alt+C` | Change to a subdirectory |
-| `**<Tab>` | Fuzzy completion (e.g., `vim **<Tab>`) |
+| `Ctrl+T` | Find files |
+| `Alt+C` | Change directory |
 
-### tmux
-
-**Quick Start with Dev Layout:**
-
-```bash
-tmux-dev              # Start tmux with 3-pane dev layout
-tmux-dev myproject    # Start with custom session name
-```
-
-This creates a layout optimized for development:
-
-```
-┌────────────────────┬────────────────────┐
-│                    │      terminal      │
-│     main pane      ├────────────────────┤
-│   (opencode/vim)   │      terminal      │
-└────────────────────┴────────────────────┘
-```
-
-**Session Management:**
-
-```bash
-tmux-dev              # Start or attach to 'dev' session
-tmux attach -t dev    # Attach to existing 'dev' session
-tmux ls               # List all sessions
-Ctrl+b d              # Detach from session (keeps it running)
-```
-
-**Shortcuts:**
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+b d` | Detach from session (session keeps running) |
-| `Ctrl+b D` | Apply dev layout to current session |
-| `Ctrl+b \|` | Split pane horizontally |
-| `Ctrl+b -` | Split pane vertically |
-| `Ctrl+b h/j/k/l` | Navigate panes (vim-style) |
-| `Ctrl+b c` | Create new window |
-| `Ctrl+b n/p` | Next/previous window |
-| `Ctrl+b r` | Reload tmux config |
-
-### vim
-
-| Shortcut | Action |
-|----------|--------|
-| `Space w` | Save file |
-| `Space q` | Quit |
-| `Ctrl+h/j/k/l` | Navigate splits |
-| `/pattern` | Search forward |
-| `n/N` | Next/previous match |
+---
 
 ## Data Persistence
 
-Each project stores its data in `~/.devbox/projects/<hash>/`:
+**Normal mode**: Data stored in `~/.devbox/projects/<hash>/`
 
-```
-~/.devbox/
-├── projects/
-│   ├── a1b2c3d4/           # Project 1
-│   │   ├── config/         # Tool configurations
-│   │   ├── cache/          # Package caches
-│   │   └── data/           # Persistent app data
-│   └── e5f6g7h8/           # Project 2
-│       └── ...
-└── .last-build             # Image build timestamp
-```
+**Standalone mode**: Docker volumes `devbox-<name>-workspace`, etc.
 
-Data persists between container runs. Use `devbox --clean` to remove it.
+PostgreSQL data persists in both modes.
 
-## Customization
-
-### Configuration Files
-
-The container includes sensible defaults for all tools. To customize:
-
-1. **Starship prompt**: `~/.config/starship.toml`
-2. **tmux**: `~/.tmux.conf`
-3. **vim**: `~/.vimrc`
-4. **zsh**: `~/.zshrc`
-
-These files are in the container. To make changes permanent, modify the files in the `config/` directory and rebuild:
-
+Clean up:
 ```bash
-# Edit config/starship.toml, config/tmux.conf, etc.
-devbox --rebuild
+devbox --clean              # Current project
+devbox --standalone-rm name # Standalone session
 ```
 
-### Adding Tools
-
-To add more tools to the container, edit the `Dockerfile` and rebuild:
-
-```bash
-vim Dockerfile
-# Add your packages to the apt-get install section
-devbox --rebuild
-```
+---
 
 ## Troubleshooting
 
-### Docker Permission Denied
-
-If you get permission errors, make sure your user is in the docker group:
-
 ```bash
-sudo usermod -aG docker $USER
-# Log out and back in, or run:
-newgrp docker
-```
+# Docker permission denied
+sudo usermod -aG docker $USER && newgrp docker
 
-### Container Won't Start
-
-Check Docker is running:
-
-```bash
-docker info
-```
-
-Force rebuild the image:
-
-```bash
+# Rebuild image
 devbox --rebuild
-```
 
-### File Permission Issues
+# Full rebuild
+devbox --rebuild --no-cache
 
-The container runs with your user's UID/GID. If you see permission errors, rebuild the image:
-
-```bash
-devbox --rebuild
-```
-
-### Reset Project Data
-
-To start fresh for a project:
-
-```bash
+# Reset project
 devbox --clean
+
+# Reset everything
+rm -rf ~/.devbox && docker rmi devbox:latest
 ```
 
-### Reset Everything
+---
 
-To remove all devbox data:
-
-```bash
-rm -rf ~/.devbox
-docker rmi devbox:latest
-```
-
-## Installing Docker
-
-### Debian / Ubuntu
-
-Quick install script for Docker on Debian-based systems:
+## Installing Docker (Debian/Ubuntu)
 
 ```bash
-# Update package index
 sudo apt-get update
-
-# Install prerequisites
 sudo apt-get install -y ca-certificates curl gnupg
-
-# Add Docker's official GPG key
 sudo install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
-# Add Docker repository
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-# Install Docker
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-# Add your user to the docker group (to run without sudo)
 sudo usermod -aG docker $USER
-
-# Apply group changes (or log out and back in)
 newgrp docker
-
-# Verify installation
-docker run hello-world
 ```
 
-For Ubuntu, replace `debian` with `ubuntu` in the repository URL above.
+For Ubuntu, replace `debian` with `ubuntu`. See [Docker docs](https://docs.docker.com/engine/install/) for other distros.
 
-For other distributions, see the [official Docker documentation](https://docs.docker.com/engine/install/).
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Docker Container (devbox)                 │
-├─────────────────────────────────────────────────────────────┤
-│  Base: Debian Bookworm (stable)                             │
-├─────────────────────────────────────────────────────────────┤
-│  Shell: zsh + oh-my-zsh + starship + fzf                    │
-├─────────────────────────────────────────────────────────────┤
-│  Languages: Python (uv) + Node.js (nvm)                     │
-├─────────────────────────────────────────────────────────────┤
-│  AI: OpenCode                                               │
-├─────────────────────────────────────────────────────────────┤
-│  Tools: git, gh, vim, tmux, ripgrep, fd, htop               │
-└─────────────────────────────────────────────────────────────┘
-
-Volume Mounts:
-  ~/project     → /workspace        (your code)
-  ~/.ssh        → /home/dev/.ssh    (SSH keys, read-only)
-  ~/.gitconfig  → /tmp/host_gitconfig (git config import)
-  ~/.devbox/... → /home/dev/...     (persistent data)
-```
+---
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details.
+MIT
