@@ -21,12 +21,6 @@ on:
   push:
     branches:
       - release
-    paths:
-      - 'Dockerfile'
-      - 'entrypoint.sh'
-      - 'config/**'
-      - 'scripts/**'
-      - '.github/workflows/build.yml'
   workflow_dispatch:
     inputs:
       push_image:
