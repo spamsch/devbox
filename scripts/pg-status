@@ -6,12 +6,41 @@ PG_RUN="/home/dev/.local/share/postgresql/run"
 PG_VERSION=$(ls /usr/lib/postgresql/ | head -1)
 PG_BIN="/usr/lib/postgresql/${PG_VERSION}/bin"
 
+BOLD=$'\033[1m'
+GREEN=$'\033[0;32m'
+YELLOW=$'\033[0;33m'
+DIM=$'\033[2m'
+NC=$'\033[0m'
+
 if "$PG_BIN/pg_isready" -h "$PG_RUN" -q 2>/dev/null; then
-    echo "PostgreSQL is running on localhost:5432"
-    echo "Socket: $PG_RUN"
+    echo "${BOLD}PostgreSQL${NC} is running on localhost:5432"
+    echo "${DIM}Socket: $PG_RUN${NC}"
     echo ""
-    echo "Databases:"
+    
+    echo "${BOLD}Databases:${NC}"
     psql -h "$PG_RUN" -l 2>/dev/null | head -10
+    echo ""
+    
+    echo "${BOLD}Extensions:${NC}"
+    # Check if vector extension is available
+    if psql -h "$PG_RUN" -d postgres -tAc "SELECT 1 FROM pg_available_extensions WHERE name='vector'" 2>/dev/null | grep -q 1; then
+        echo "  ${GREEN}●${NC} vector (pgvector) - available"
+        # Check if installed in any database
+        installed=$(psql -h "$PG_RUN" -d postgres -tAc "SELECT datname FROM pg_database WHERE datistemplate = false" 2>/dev/null | while read db; do
+            if [ -n "$db" ]; then
+                if psql -h "$PG_RUN" -d "$db" -tAc "SELECT 1 FROM pg_extension WHERE extname='vector'" 2>/dev/null | grep -q 1; then
+                    echo "$db"
+                fi
+            fi
+        done)
+        if [ -n "$installed" ]; then
+            echo "    ${DIM}Installed in: $installed${NC}"
+        else
+            echo "    ${DIM}Not yet installed. Run: CREATE EXTENSION vector;${NC}"
+        fi
+    else
+        echo "  ${YELLOW}○${NC} vector (pgvector) - not available"
+    fi
 else
     echo "PostgreSQL is not running"
     echo "Start with: pg-start"

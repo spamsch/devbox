@@ -83,7 +83,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Database
     postgresql \
     postgresql-client \
-    postgresql-15-pgvector \
     # Python build dependencies (for packages with native extensions)
     python3-dev \
     && \
@@ -135,6 +134,30 @@ RUN curl -fsSL https://pkgs.tailscale.com/stable/debian/bookworm.noarmor.gpg | \
     tee /etc/apt/sources.list.d/tailscale.list && \
     apt-get update && \
     apt-get install -y tailscale && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# -----------------------------------------------------------------------------
+# pgvector Extension Installation
+# -----------------------------------------------------------------------------
+# Install pgvector for vector similarity search in PostgreSQL.
+# Build from source as it's not in Debian repos.
+# -----------------------------------------------------------------------------
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        postgresql-server-dev-15 \
+        git \
+        make \
+        gcc && \
+    cd /tmp && \
+    git clone --branch v0.8.0 https://github.com/pgvector/pgvector.git && \
+    cd pgvector && \
+    make && \
+    make install && \
+    cd / && \
+    rm -rf /tmp/pgvector && \
+    apt-get remove -y postgresql-server-dev-15 && \
+    apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
