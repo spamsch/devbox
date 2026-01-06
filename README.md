@@ -156,13 +156,23 @@ export DEVBOX_IMAGE=ghcr.io/spamsch/devbox:latest
 Works out of the box with free models. For more options:
 
 ```bash
-# Inside opencode, run:
-/connect
+# CLI authentication (no TUI needed)
+opencode auth login
+# Select provider, authenticate via browser
 
-# Options:
-# - Claude Pro/Max (browser auth)
-# - API keys (Anthropic, OpenAI, etc.)
-# - 75+ providers via Models.dev
+# Or inside the TUI:
+/connect
+```
+
+Options:
+- Claude Pro/Max (browser auth)
+- API keys (Anthropic, OpenAI, etc.)
+- 75+ providers via Models.dev
+
+```bash
+# Manage auth
+opencode auth list              # List connected providers
+opencode auth logout            # Remove credentials
 ```
 
 ### API Keys
@@ -187,11 +197,21 @@ Or use a `.env` file in your project directory.
 |----------|--------|
 | `Ctrl+b d` | Detach (session keeps running) |
 | `Ctrl+b s` | List and switch sessions |
+| `Ctrl+b z` | Zoom/unzoom pane (fullscreen toggle) |
 | `Ctrl+b c` | New window |
 | `Ctrl+b n/p` | Next/previous window |
 | `Ctrl+b %` | Split vertical |
 | `Ctrl+b "` | Split horizontal |
 | `Ctrl+b h/j/k/l` | Navigate panes |
+
+### Container
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+p Ctrl+q` | Detach (container keeps running) |
+| `exit` / `Ctrl+d` | Exit and stop container |
+
+Reattach with: `docker attach <container-name>`
 
 ### fzf
 

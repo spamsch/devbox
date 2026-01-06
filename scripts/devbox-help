@@ -63,11 +63,16 @@ ${BOLD}Tools Installed${NC}
 ${BOLD}Tmux Shortcuts${NC}
   Ctrl+b d            Detach from session
   Ctrl+b D            Start dev layout (3 panes)
+  Ctrl+b z            Zoom/unzoom current pane (fullscreen toggle)
   Ctrl+b [            Scroll mode (q to exit)
   Ctrl+b c            New window
   Ctrl+b n/p          Next/previous window
   Ctrl+b %            Split vertical
   Ctrl+b "            Split horizontal
+
+${BOLD}Container Shortcuts${NC}
+  Ctrl+p Ctrl+q       Detach from container (keeps it running)
+  exit / Ctrl+d       Exit and stop container
 
 ${BOLD}Zsh Aliases${NC}
   gs                  git status
@@ -95,6 +100,11 @@ ${BOLD}Clone a Repository${NC}
 ${BOLD}GitHub CLI Authentication${NC}
   gh auth login                   Authenticate with GitHub
   gh auth status                  Check authentication status
+
+${BOLD}OpenCode Authentication${NC}
+  opencode auth login             Connect to Claude Pro/Max or other providers
+  opencode auth list              List authenticated providers
+  opencode auth logout            Remove provider credentials
 
 ${BOLD}Start Working on a Project${NC}
   cd /workspace
