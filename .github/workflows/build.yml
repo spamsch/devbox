@@ -6,15 +6,12 @@
 # Container Registry (ghcr.io).
 #
 # Triggers:
-#   - Push to main branch
-#   - Pull requests to main branch
+#   - Push to release branch
 #   - Manual trigger (workflow_dispatch)
-#   - Weekly schedule (to keep image updated)
 #
 # The image is tagged with:
-#   - 'latest' for main branch builds
+#   - 'latest' for release branch builds
 #   - Git SHA for traceability
-#   - 'pr-<number>' for pull request builds
 #
 # =============================================================================
 
@@ -23,16 +20,7 @@ name: Build Docker Image
 on:
   push:
     branches:
-      - main
-    paths:
-      - 'Dockerfile'
-      - 'entrypoint.sh'
-      - 'config/**'
-      - 'scripts/**'
-      - '.github/workflows/build.yml'
-  pull_request:
-    branches:
-      - main
+      - release
     paths:
       - 'Dockerfile'
       - 'entrypoint.sh'
@@ -46,9 +34,6 @@ on:
         required: false
         default: 'true'
         type: boolean
-  schedule:
-    # Build weekly on Sunday at 00:00 UTC to get updated base image and tools
-    - cron: '0 0 * * 0'
 
 env:
   REGISTRY: ghcr.io
@@ -102,14 +87,10 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # Set 'latest' tag for main branch
-            type=raw,value=latest,enable={{is_default_branch}}
+            # Set 'latest' tag for release branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/release' }}
             # Set SHA tag for traceability
             type=sha,prefix=sha-
-            # Set 'pr-<number>' tag for pull requests
-            type=ref,event=pr
-            # Set date tag for scheduled builds
-            type=schedule,pattern={{date 'YYYYMMDD'}}
 
       # -----------------------------------------------------------------------
       # Build and Push Docker image
