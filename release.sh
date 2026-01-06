@@ -145,7 +145,7 @@ main() {
     else
         git checkout -b release
     fi
-    git push -u origin release
+    git push -u origin refs/heads/release:refs/heads/release
     
     # Back to main
     git checkout main
