@@ -1,9 +1,9 @@
 # =============================================================================
-# Devbox - Development Container for OpenCode with Python & JavaScript
+# Devbox - Development Container for AI-Assisted Coding
 # =============================================================================
 #
 # A Docker-based development environment optimized for AI-assisted coding.
-# Includes: OpenCode, Python (uv), Node.js (nvm), tmux, zsh, starship
+# Includes: OpenCode, Claude Code, Python (uv), Node.js (nvm), tmux, zsh, starship
 #
 # Build:  docker build -t devbox:latest .
 # Run:    See the 'devbox' launcher script
@@ -263,6 +263,15 @@ RUN curl -fsSL https://opencode.ai/install | bash && \
 
 # Add opencode to PATH explicitly (installer adds to .zshrc but we want it everywhere)
 ENV PATH="/home/${USERNAME}/.opencode/bin:${PATH}"
+
+# -----------------------------------------------------------------------------
+# Claude Code Installation
+# -----------------------------------------------------------------------------
+# Claude Code is Anthropic's official CLI for Claude.
+# Install via npm (Node.js must be available from nvm installation above).
+# See: https://docs.anthropic.com/en/docs/claude-code
+# -----------------------------------------------------------------------------
+RUN . "$NVM_DIR/nvm.sh" && npm install -g @anthropic-ai/claude-code
 
 # -----------------------------------------------------------------------------
 # Directory Setup

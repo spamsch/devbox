@@ -17,8 +17,11 @@ ${BOLD}Setup & Configuration${NC}
   devbox-setup        Interactive setup wizard (git, GitHub CLI, API keys)
   devbox-help         Show this help message
 
-${BOLD}Development Environment${NC}
+${BOLD}AI Coding Assistants${NC}
   opencode            Start OpenCode AI coding assistant
+  claude              Start Claude Code (Anthropic's CLI for Claude)
+
+${BOLD}Development Environment${NC}
   tmux-dev [name] [dir]  Start tmux session with 3-pane layout
   tmux-list           List active tmux sessions
 
@@ -53,6 +56,7 @@ ${BOLD}PostgreSQL${NC}
   Auth:               trust (local connections)
 
 ${BOLD}Tools Installed${NC}
+  AI Agents:          OpenCode, Claude Code
   Shell:              zsh + oh-my-zsh + starship prompt
   Editor:             vim
   Python:             uv (fast package manager)
@@ -105,6 +109,10 @@ ${BOLD}OpenCode Authentication${NC}
   opencode auth login             Connect to Claude Pro/Max or other providers
   opencode auth list              List authenticated providers
   opencode auth logout            Remove provider credentials
+
+${BOLD}Claude Code Authentication${NC}
+  claude                          On first run, opens browser for authentication
+  ANTHROPIC_API_KEY=...           Or set API key in environment
 
 ${BOLD}Start Working on a Project${NC}
   cd /workspace

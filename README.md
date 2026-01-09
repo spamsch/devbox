@@ -1,6 +1,6 @@
 # Devbox
 
-A Docker-based development environment for AI-assisted coding with [OpenCode](https://opencode.ai/).
+A Docker-based development environment for AI-assisted coding with [OpenCode](https://opencode.ai/) and [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
 
 ## Quick Start
 
@@ -13,7 +13,8 @@ docker run -it --name devbox ghcr.io/spamsch/devbox:latest
 devbox-setup                    # Configure git & GitHub
 gh auth login                   # Authenticate
 gh repo clone owner/repo        # Clone your code
-opencode                        # Start coding
+opencode                        # Start OpenCode AI assistant
+claude                          # Or start Claude Code
 ```
 
 Container persists after exit. Reattach with `docker start -ai devbox`.
@@ -43,7 +44,8 @@ cd ~/my-project
 devbox
 
 # Inside container
-opencode              # Start AI coding assistant
+opencode              # Start OpenCode AI assistant
+claude                # Or start Claude Code
 devbox-help           # Show all commands
 ```
 
@@ -58,7 +60,8 @@ devbox --standalone myproject
 devbox-setup                    # Configure git & GitHub
 gh auth login                   # Authenticate
 gh repo clone owner/repo        # Clone your code
-opencode                        # Start coding
+opencode                        # Start OpenCode AI assistant
+claude                          # Or start Claude Code
 ```
 
 Uses Docker volumes for persistence. List sessions with `devbox --standalone-list`.
@@ -72,6 +75,7 @@ Uses Docker volumes for persistence. List sessions with `devbox --standalone-lis
 ```bash
 devbox                      # Start shell in current directory
 devbox opencode             # Start OpenCode directly
+devbox claude               # Start Claude Code directly
 devbox exec <cmd>           # Run command in container
 devbox --standalone [name]  # Isolated container with Docker volumes
 devbox --standalone-list    # List standalone sessions
@@ -89,6 +93,7 @@ devbox --info               # Show container info
 devbox-help                 # Show all commands and configuration
 devbox-setup                # Configure git, GitHub CLI, API keys
 opencode                    # Start OpenCode AI assistant
+claude                      # Start Claude Code
 
 # Tmux sessions (multiple projects)
 tmux-dev                    # Session 'dev' in /workspace
@@ -134,7 +139,7 @@ tmux attach -t backend      # Attach to backend
 
 | Category | Tools |
 |----------|-------|
-| **AI** | OpenCode |
+| **AI Agents** | OpenCode, Claude Code |
 | **Languages** | Python 3 (uv), Node.js LTS (nvm) |
 | **Database** | PostgreSQL 15 |
 | **Shell** | zsh, oh-my-zsh, starship prompt, fzf |
@@ -186,6 +191,21 @@ Options:
 # Manage auth
 opencode auth list              # List connected providers
 opencode auth logout            # Remove credentials
+```
+
+### Claude Code
+
+Claude Code authenticates via browser on first run:
+
+```bash
+claude                          # Opens browser for authentication
+```
+
+Or use an API key:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+claude
 ```
 
 ### API Keys
