@@ -274,6 +274,20 @@ ENV PATH="/home/${USERNAME}/.opencode/bin:${PATH}"
 RUN . "$NVM_DIR/nvm.sh" && npm install -g @anthropic-ai/claude-code
 
 # -----------------------------------------------------------------------------
+# code-server Installation (VS Code in Browser)
+# -----------------------------------------------------------------------------
+# code-server allows running VS Code in the browser.
+# Access via Tailscale or localhost on port 18080.
+# See: https://github.com/coder/code-server
+# -----------------------------------------------------------------------------
+RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=$HOME/.local && \
+    # Verify installation
+    $HOME/.local/bin/code-server --version
+
+# Add code-server to PATH
+ENV PATH="/home/${USERNAME}/.local/bin:${PATH}"
+
+# -----------------------------------------------------------------------------
 # Directory Setup
 # -----------------------------------------------------------------------------
 # Create directories that will be used for configuration and data.
@@ -326,6 +340,8 @@ COPY scripts/tailscale-down /usr/local/bin/tailscale-down
 COPY scripts/pg-start /usr/local/bin/pg-start
 COPY scripts/pg-stop /usr/local/bin/pg-stop
 COPY scripts/pg-status /usr/local/bin/pg-status
+COPY scripts/vscode-start /usr/local/bin/vscode-start
+COPY scripts/vscode-stop /usr/local/bin/vscode-stop
 COPY scripts/devbox-help /usr/local/bin/devbox-help
 RUN chmod +x /usr/local/bin/devbox-setup \
              /usr/local/bin/tmux-dev \
@@ -335,6 +351,8 @@ RUN chmod +x /usr/local/bin/devbox-setup \
              /usr/local/bin/pg-start \
              /usr/local/bin/pg-stop \
              /usr/local/bin/pg-status \
+             /usr/local/bin/vscode-start \
+             /usr/local/bin/vscode-stop \
              /usr/local/bin/devbox-help
 USER ${USERNAME}
 

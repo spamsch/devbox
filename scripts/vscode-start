@@ -1,0 +1,71 @@
+#!/bin/bash
+# code-server start script for devbox
+# Starts VS Code in the browser on port 18080
+
+set -e
+
+VSCODE_PORT=18080
+VSCODE_DATA="$HOME/.local/share/code-server"
+VSCODE_CONFIG="$HOME/.config/code-server"
+VSCODE_LOG="$VSCODE_DATA/code-server.log"
+VSCODE_PID="$VSCODE_DATA/code-server.pid"
+
+# Ensure directories exist
+mkdir -p "$VSCODE_DATA" "$VSCODE_CONFIG"
+
+# Check if already running
+if [ -f "$VSCODE_PID" ]; then
+    pid=$(cat "$VSCODE_PID")
+    if kill -0 "$pid" 2>/dev/null; then
+        echo "code-server is already running (PID: $pid)"
+        echo "Access at: http://localhost:$VSCODE_PORT"
+        exit 0
+    else
+        # Stale pid file
+        rm -f "$VSCODE_PID"
+    fi
+fi
+
+# Create config file if it doesn't exist (disable auth for local/tailscale use)
+if [ ! -f "$VSCODE_CONFIG/config.yaml" ]; then
+    cat > "$VSCODE_CONFIG/config.yaml" << EOF
+bind-addr: 0.0.0.0:$VSCODE_PORT
+auth: none
+cert: false
+EOF
+    echo "Created code-server config (auth disabled for Tailscale access)"
+fi
+
+echo "Starting code-server on port $VSCODE_PORT..."
+
+# Start code-server in background
+nohup code-server --config "$VSCODE_CONFIG/config.yaml" /workspace > "$VSCODE_LOG" 2>&1 &
+echo $! > "$VSCODE_PID"
+
+# Wait for it to be ready
+for i in $(seq 1 10); do
+    if curl -s -o /dev/null -w "" "http://localhost:$VSCODE_PORT" 2>/dev/null; then
+        break
+    fi
+    sleep 0.5
+done
+
+# Check if running
+sleep 1
+if [ -f "$VSCODE_PID" ] && kill -0 "$(cat "$VSCODE_PID")" 2>/dev/null; then
+    echo "code-server is running"
+    echo ""
+    echo "  Local:     http://localhost:$VSCODE_PORT"
+    if command -v tailscale &>/dev/null && tailscale status &>/dev/null; then
+        ts_ip=$(tailscale ip -4 2>/dev/null || echo "")
+        if [ -n "$ts_ip" ]; then
+            echo "  Tailscale: http://$ts_ip:$VSCODE_PORT"
+        fi
+    fi
+    echo ""
+    echo "  Log file:  $VSCODE_LOG"
+else
+    echo "ERROR: code-server failed to start. Check log: $VSCODE_LOG"
+    tail -20 "$VSCODE_LOG" 2>/dev/null || true
+    exit 1
+fi

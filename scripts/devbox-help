@@ -40,6 +40,10 @@ ${BOLD}Tailscale VPN${NC}
   tailscale-up        Start Tailscale and authenticate
   tailscale-down      Stop Tailscale
 
+${BOLD}VS Code (Browser)${NC}
+  vscode-start        Start code-server on port 18080
+  vscode-stop         Stop code-server
+
 ${BOLD}${CYAN}Default Configuration${NC}
 ======================
 
@@ -58,7 +62,7 @@ ${BOLD}PostgreSQL${NC}
 ${BOLD}Tools Installed${NC}
   AI Agents:          OpenCode, Claude Code
   Shell:              zsh + oh-my-zsh + starship prompt
-  Editor:             vim
+  Editor:             vim, code-server (VS Code in browser)
   Python:             uv (fast package manager)
   Node.js:            nvm (version manager)
   Search:             ripgrep (rg), fd, fzf

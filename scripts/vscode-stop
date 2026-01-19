@@ -1,0 +1,23 @@
+#!/bin/bash
+# code-server stop script for devbox
+
+VSCODE_DATA="$HOME/.local/share/code-server"
+VSCODE_PID="$VSCODE_DATA/code-server.pid"
+
+if [ ! -f "$VSCODE_PID" ]; then
+    echo "code-server is not running"
+    exit 0
+fi
+
+pid=$(cat "$VSCODE_PID")
+if ! kill -0 "$pid" 2>/dev/null; then
+    echo "code-server is not running (stale pid file)"
+    rm -f "$VSCODE_PID"
+    exit 0
+fi
+
+echo "Stopping code-server..."
+kill "$pid" 2>/dev/null
+rm -f "$VSCODE_PID"
+
+echo "code-server stopped"
