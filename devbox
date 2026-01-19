@@ -46,6 +46,9 @@ DEVBOX_DATA_DIR="${DEVBOX_DATA_DIR:-$HOME/.devbox}"
 # Tailscale support - set to true to enable networking capabilities
 DEVBOX_TAILSCALE="${DEVBOX_TAILSCALE:-false}"
 
+# VS Code server support - set to true to expose port 18080 for code-server
+DEVBOX_VSCODE="${DEVBOX_VSCODE:-false}"
+
 # -----------------------------------------------------------------------------
 # Color Codes
 # -----------------------------------------------------------------------------
@@ -269,7 +272,12 @@ build_run_args() {
         # Persist Tailscale state
         args+=("-v" "$data_dir/tailscale:/var/lib/tailscale")
     fi
-    
+
+    # Add VS Code server port forwarding if enabled
+    if [ "$DEVBOX_VSCODE" = "true" ]; then
+        args+=("-p" "18080:18080")
+    fi
+
     echo "${args[@]}"
 }
 
@@ -506,7 +514,12 @@ cmd_standalone() {
         run_args+=("--device=/dev/net/tun:/dev/net/tun")
         run_args+=("-v" "${vol_tailscale}:/var/lib/tailscale")
     fi
-    
+
+    # Add VS Code server port forwarding if enabled
+    if [ "$DEVBOX_VSCODE" = "true" ]; then
+        run_args+=("-p" "18080:18080")
+    fi
+
     # Run container
     docker run "${run_args[@]}" "$DEVBOX_IMAGE" /bin/zsh
 }
@@ -631,6 +644,7 @@ Options:
   --clean             Remove container and data for current project
   --info              Show container and project information
   --tailscale         Enable Tailscale VPN support (adds NET_ADMIN capability)
+  --vscode            Enable VS Code server port forwarding (port 18080)
   --help, -h          Show this help message
   --version, -v       Show version
 
@@ -653,8 +667,14 @@ Tailscale Examples:
   devbox --tailscale              # Start with Tailscale support
   devbox --tailscale --standalone # Standalone with Tailscale
   # Inside container:
-  sudo tailscaled &               # Start Tailscale daemon
-  sudo tailscale up               # Authenticate and connect
+  tailscale-up                    # Start Tailscale and authenticate
+
+VS Code Examples:
+  devbox --vscode                 # Start with VS Code server port exposed
+  devbox --vscode --standalone    # Standalone with VS Code server
+  # Inside container:
+  vscode-start                    # Start code-server
+  # Then open http://localhost:18080 in your browser
 
 Environment Variables:
   ANTHROPIC_API_KEY   API key for Anthropic (Claude)
@@ -664,6 +684,7 @@ Environment Variables:
   DEVBOX_IMAGE        Override default image (default: devbox:latest)
                       Use ghcr.io/spamsch/devbox:latest for pre-built image
   DEVBOX_TAILSCALE    Set to 'true' to always enable Tailscale support
+  DEVBOX_VSCODE       Set to 'true' to always enable VS Code server port
 
 For more information, see: https://github.com/spamsch/devbox
 EOF
@@ -692,6 +713,9 @@ main() {
         if [ "$arg" = "--tailscale" ]; then
             DEVBOX_TAILSCALE="true"
             log_info "Tailscale support enabled"
+        elif [ "$arg" = "--vscode" ]; then
+            DEVBOX_VSCODE="true"
+            log_info "VS Code server support enabled (port 18080)"
         elif [ "$arg" = "--no-cache" ]; then
             no_cache="true"
         else

@@ -85,6 +85,7 @@ devbox --rebuild            # Rebuild Docker image
 devbox --rebuild --no-cache # Full rebuild without cache
 devbox --clean              # Remove project data
 devbox --info               # Show container info
+devbox --vscode             # Enable VS Code server (port 18080)
 ```
 
 ### Container Commands
@@ -109,6 +110,10 @@ pg-status                   # Show status and databases
 # Tailscale VPN
 tailscale-up                # Start and authenticate
 tailscale-down              # Stop Tailscale
+
+# VS Code (browser-based)
+vscode-start                # Start code-server on port 18080
+vscode-stop                 # Stop code-server
 ```
 
 ---
@@ -144,6 +149,7 @@ tmux attach -t backend      # Attach to backend
 | **Database** | PostgreSQL 15 |
 | **Shell** | zsh, oh-my-zsh, starship prompt, fzf |
 | **Dev Tools** | git, gh, vim, tmux, htop, direnv |
+| **Editor** | code-server (VS Code in browser) |
 | **Search** | ripgrep (rg), fd, fzf |
 | **Network** | Tailscale VPN, ping, telnet |
 
