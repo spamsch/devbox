@@ -247,3 +247,11 @@ autocmd FileType javascript,typescript,json,yaml,html,css setlocal tabstop=2 shi
 
 " Enable spell checking for text files
 autocmd FileType markdown,text setlocal spell spelllang=en_us
+
+" -----------------------------------------------------------------------------
+" Colorscheme (user-selected via vim-theme command)
+" -----------------------------------------------------------------------------
+" Load user-selected colorscheme (set by vim-theme command)
+if filereadable(expand("~/.vim/theme"))
+    source ~/.vim/theme
+endif

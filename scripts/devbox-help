@@ -22,6 +22,9 @@ ${BOLD}AI Coding Assistants${NC}
   opencode            Start OpenCode AI coding assistant
   claude              Start Claude Code (Anthropic's CLI for Claude)
 
+${BOLD}Editor${NC}
+  vim-theme           Switch vim colorscheme (interactive picker)
+
 ${BOLD}Development Environment${NC}
   tmux-dev [name] [dir]  Start tmux session with 3-pane layout
   tmux-list           List active tmux sessions

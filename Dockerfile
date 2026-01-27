@@ -347,6 +347,7 @@ COPY scripts/vscode-start /usr/local/bin/vscode-start
 COPY scripts/vscode-stop /usr/local/bin/vscode-stop
 COPY scripts/devbox-help /usr/local/bin/devbox-help
 COPY scripts/devbox-update /usr/local/bin/devbox-update
+COPY scripts/vim-theme /usr/local/bin/vim-theme
 RUN chmod +x /usr/local/bin/devbox-setup \
              /usr/local/bin/tmux-dev \
              /usr/local/bin/tmux-list \
@@ -358,7 +359,8 @@ RUN chmod +x /usr/local/bin/devbox-setup \
              /usr/local/bin/vscode-start \
              /usr/local/bin/vscode-stop \
              /usr/local/bin/devbox-help \
-             /usr/local/bin/devbox-update
+             /usr/local/bin/devbox-update \
+             /usr/local/bin/vim-theme
 USER ${USERNAME}
 
 # Switch to root to copy entrypoint to system location
