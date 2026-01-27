@@ -343,6 +343,7 @@ COPY scripts/pg-status /usr/local/bin/pg-status
 COPY scripts/vscode-start /usr/local/bin/vscode-start
 COPY scripts/vscode-stop /usr/local/bin/vscode-stop
 COPY scripts/devbox-help /usr/local/bin/devbox-help
+COPY scripts/devbox-update /usr/local/bin/devbox-update
 RUN chmod +x /usr/local/bin/devbox-setup \
              /usr/local/bin/tmux-dev \
              /usr/local/bin/tmux-list \
@@ -353,7 +354,8 @@ RUN chmod +x /usr/local/bin/devbox-setup \
              /usr/local/bin/pg-status \
              /usr/local/bin/vscode-start \
              /usr/local/bin/vscode-stop \
-             /usr/local/bin/devbox-help
+             /usr/local/bin/devbox-help \
+             /usr/local/bin/devbox-update
 USER ${USERNAME}
 
 # Switch to root to copy entrypoint to system location

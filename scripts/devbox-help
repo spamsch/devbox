@@ -15,6 +15,7 @@ ${BOLD}${CYAN}Devbox Commands${NC}
 
 ${BOLD}Setup & Configuration${NC}
   devbox-setup        Interactive setup wizard (git, GitHub CLI, API keys)
+  devbox-update       Update all installed packages to latest versions
   devbox-help         Show this help message
 
 ${BOLD}AI Coding Assistants${NC}

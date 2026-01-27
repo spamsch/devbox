@@ -1,0 +1,118 @@
+#!/bin/bash
+# Devbox update - Update installed packages to their latest versions
+
+set -e
+
+BOLD=$'\033[1m'
+DIM=$'\033[2m'
+CYAN=$'\033[0;36m'
+GREEN=$'\033[0;32m'
+YELLOW=$'\033[0;33m'
+RED=$'\033[0;31m'
+NC=$'\033[0m'
+
+NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+OPENCODE_BIN="$HOME/.opencode/bin/opencode"
+
+success_count=0
+fail_count=0
+updated_packages=""
+failed_packages=""
+
+update_package() {
+    local name="$1"
+    local cmd="$2"
+    printf "  ${BOLD}%-20s${NC} " "$name"
+    if eval "$cmd" >/dev/null 2>&1; then
+        echo "${GREEN}updated${NC}"
+        success_count=$((success_count + 1))
+        updated_packages="$updated_packages $name"
+    else
+        echo "${RED}failed${NC}"
+        fail_count=$((fail_count + 1))
+        failed_packages="$failed_packages $name"
+    fi
+}
+
+get_version() {
+    local name="$1"
+    case "$name" in
+        "Claude Code")
+            . "$NVM_DIR/nvm.sh" 2>/dev/null && claude --version 2>/dev/null | head -1 || echo "unknown"
+            ;;
+        "OpenCode")
+            "$OPENCODE_BIN" --version 2>/dev/null || echo "unknown"
+            ;;
+        "code-server")
+            code-server --version 2>/dev/null | head -1 || echo "unknown"
+            ;;
+        "Starship")
+            starship --version 2>/dev/null || echo "unknown"
+            ;;
+        "uv")
+            "$HOME/.cargo/bin/uv" --version 2>/dev/null || echo "unknown"
+            ;;
+        "Node.js")
+            . "$NVM_DIR/nvm.sh" 2>/dev/null && node --version 2>/dev/null || echo "unknown"
+            ;;
+    esac
+}
+
+echo ""
+echo "${BOLD}${CYAN}Devbox Package Update${NC}"
+echo "====================="
+echo ""
+
+# --- Collect versions before update ---
+echo "${BOLD}Current versions:${NC}"
+for pkg in "Claude Code" "OpenCode" "code-server" "Starship" "uv" "Node.js"; do
+    ver=$(get_version "$pkg")
+    printf "  ${BOLD}%-20s${NC} %s\n" "$pkg" "$ver"
+done
+echo ""
+
+# --- Update packages ---
+echo "${BOLD}Updating packages...${NC}"
+echo ""
+
+# Claude Code (npm global package)
+update_package "Claude Code" '. "$NVM_DIR/nvm.sh" && npm install -g @anthropic-ai/claude-code'
+
+# OpenCode (official installer)
+update_package "OpenCode" 'curl -fsSL https://opencode.ai/install | bash'
+
+# code-server (official installer)
+update_package "code-server" 'curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=$HOME/.local'
+
+# Starship prompt (system-wide, needs sudo)
+update_package "Starship" 'curl -fsSL https://starship.rs/install.sh | sudo sh -s -- --yes'
+
+# uv Python package manager
+update_package "uv" 'curl -LsSf https://astral.sh/uv/install.sh | sh'
+
+# Node.js LTS via nvm
+update_package "Node.js (LTS)" '. "$NVM_DIR/nvm.sh" && nvm install --lts && nvm alias default node'
+
+# Oh-My-Zsh
+update_package "Oh-My-Zsh" 'cd "$HOME/.oh-my-zsh" && git pull'
+
+# Zsh plugins
+update_package "zsh-autosuggestions" 'cd "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions" && git pull'
+update_package "zsh-syntax-highlight" 'cd "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting" && git pull'
+
+echo ""
+
+# --- Show new versions ---
+echo "${BOLD}Updated versions:${NC}"
+for pkg in "Claude Code" "OpenCode" "code-server" "Starship" "uv" "Node.js"; do
+    ver=$(get_version "$pkg")
+    printf "  ${BOLD}%-20s${NC} %s\n" "$pkg" "$ver"
+done
+echo ""
+
+# --- Summary ---
+echo "${BOLD}Summary:${NC} ${GREEN}$success_count updated${NC}"
+if [ "$fail_count" -gt 0 ]; then
+    echo "         ${RED}$fail_count failed:${NC}$failed_packages"
+fi
+echo ""
