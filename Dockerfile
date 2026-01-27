@@ -268,10 +268,13 @@ ENV PATH="/home/${USERNAME}/.opencode/bin:${PATH}"
 # Claude Code Installation
 # -----------------------------------------------------------------------------
 # Claude Code is Anthropic's official CLI for Claude.
-# Install via npm (Node.js must be available from nvm installation above).
+# Install via native installer (no Node.js dependency required).
+# The binary is placed at ~/.local/bin/claude (already on PATH via code-server).
 # See: https://docs.anthropic.com/en/docs/claude-code
 # -----------------------------------------------------------------------------
-RUN . "$NVM_DIR/nvm.sh" && npm install -g @anthropic-ai/claude-code
+RUN curl -fsSL https://claude.ai/install.sh | bash && \
+    # Verify installation
+    $HOME/.local/bin/claude --version
 
 # -----------------------------------------------------------------------------
 # code-server Installation (VS Code in Browser)

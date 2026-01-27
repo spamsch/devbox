@@ -38,7 +38,7 @@ get_version() {
     local name="$1"
     case "$name" in
         "Claude Code")
-            . "$NVM_DIR/nvm.sh" 2>/dev/null && claude --version 2>/dev/null | head -1 || echo "unknown"
+            claude --version 2>/dev/null | head -1 || echo "unknown"
             ;;
         "OpenCode")
             "$OPENCODE_BIN" --version 2>/dev/null || echo "unknown"
@@ -75,8 +75,8 @@ echo ""
 echo "${BOLD}Updating packages...${NC}"
 echo ""
 
-# Claude Code (npm global package)
-update_package "Claude Code" '. "$NVM_DIR/nvm.sh" && npm install -g @anthropic-ai/claude-code'
+# Claude Code (native installer with built-in update)
+update_package "Claude Code" 'claude update'
 
 # OpenCode (official installer)
 update_package "OpenCode" 'curl -fsSL https://opencode.ai/install | bash'
