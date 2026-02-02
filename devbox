@@ -8,6 +8,7 @@
 # Usage:
 #   devbox                  Start interactive shell in container
 #   devbox shell            Same as above
+#   devbox attach [name]    Attach to running/stopped container
 #   devbox opencode         Start OpenCode directly
 #   devbox exec <cmd>       Run a command in the container
 #   devbox --standalone [name]  Start isolated container (no host mounts)
@@ -621,6 +622,59 @@ cmd_standalone_rm() {
     log_success "Session '$session_name' removed"
 }
 
+cmd_attach() {
+    local target_name="${1:-}"
+    local container_name=""
+
+    if [ -n "$target_name" ]; then
+        # User specified a name - look for exact match or partial match
+        # Try exact match first (devbox-<name> or devbox-standalone-<name>)
+        if docker ps -aq -f "name=^devbox-standalone-${target_name}$" | grep -q .; then
+            container_name="devbox-standalone-${target_name}"
+        elif docker ps -aq -f "name=^devbox-${target_name}$" | grep -q .; then
+            container_name="devbox-${target_name}"
+        elif docker ps -aq -f "name=^${target_name}$" | grep -q .; then
+            # Exact container name match
+            container_name="${target_name}"
+        else
+            # Try partial match
+            container_name=$(docker ps -aq --filter "name=devbox" --filter "name=${target_name}" --format "{{.Names}}" | head -1)
+        fi
+
+        if [ -z "$container_name" ]; then
+            log_error "No devbox container found matching: $target_name"
+            echo ""
+            echo "Available containers:"
+            docker ps -a --filter "name=devbox" --format "  {{.Names}} ({{.Status}})" 2>/dev/null || echo "  (none)"
+            exit 1
+        fi
+    else
+        # No name specified - find the first devbox container (prefer running)
+        container_name=$(docker ps -q --filter "name=devbox" --format "{{.Names}}" | head -1)
+
+        if [ -z "$container_name" ]; then
+            # No running container, try stopped
+            container_name=$(docker ps -aq --filter "name=devbox" --format "{{.Names}}" | head -1)
+        fi
+
+        if [ -z "$container_name" ]; then
+            log_error "No devbox containers found"
+            log_info "Start a new container with: devbox"
+            exit 1
+        fi
+    fi
+
+    # Check if container is running
+    if docker ps -q -f "name=^${container_name}$" | grep -q .; then
+        log_info "Attaching to running container: $container_name"
+        docker exec -it "$container_name" /bin/zsh
+    else
+        # Container exists but is stopped
+        log_info "Starting stopped container: $container_name"
+        docker start -ai "$container_name"
+    fi
+}
+
 cmd_help() {
     cat << 'EOF'
 Devbox - Development Container Launcher
@@ -630,6 +684,7 @@ Usage: devbox [command] [options]
 Commands:
   (none)              Start interactive shell (default)
   shell               Start interactive shell
+  attach [name]       Attach to a running/stopped container (first found if no name)
   opencode            Start OpenCode AI assistant
   exec <cmd>          Run a command in the container
 
@@ -650,6 +705,8 @@ Options:
 
 Examples:
   devbox                      # Start shell in current directory
+  devbox attach               # Attach to first available devbox container
+  devbox attach myproj        # Attach to container matching 'myproj'
   devbox opencode             # Start OpenCode
   devbox exec npm install     # Run npm install in container
   devbox exec python app.py   # Run Python script
@@ -754,6 +811,10 @@ main() {
             ;;
         shell)
             cmd_shell
+            ;;
+        attach)
+            shift
+            cmd_attach "$@"
             ;;
         opencode)
             cmd_opencode

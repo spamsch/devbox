@@ -264,17 +264,20 @@ RUN curl -fsSL https://opencode.ai/install | bash && \
 # Add opencode to PATH explicitly (installer adds to .zshrc but we want it everywhere)
 ENV PATH="/home/${USERNAME}/.opencode/bin:${PATH}"
 
+# Add ~/.local/bin to PATH (used by Claude Code, code-server, and other tools)
+ENV PATH="/home/${USERNAME}/.local/bin:${PATH}"
+
 # -----------------------------------------------------------------------------
 # Claude Code Installation
 # -----------------------------------------------------------------------------
 # Claude Code is Anthropic's official CLI for Claude.
 # Install via native installer (no Node.js dependency required).
-# The binary is placed at ~/.local/bin/claude (already on PATH via code-server).
+# The binary is placed at ~/.local/bin/claude.
 # See: https://docs.anthropic.com/en/docs/claude-code
 # -----------------------------------------------------------------------------
 RUN curl -fsSL https://claude.ai/install.sh | bash && \
     # Verify installation
-    $HOME/.local/bin/claude --version
+    claude --version
 
 # -----------------------------------------------------------------------------
 # code-server Installation (VS Code in Browser)
@@ -285,10 +288,7 @@ RUN curl -fsSL https://claude.ai/install.sh | bash && \
 # -----------------------------------------------------------------------------
 RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=$HOME/.local && \
     # Verify installation
-    $HOME/.local/bin/code-server --version
-
-# Add code-server to PATH
-ENV PATH="/home/${USERNAME}/.local/bin:${PATH}"
+    code-server --version
 
 # -----------------------------------------------------------------------------
 # Directory Setup
