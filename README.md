@@ -1,6 +1,19 @@
 # Devbox
 
-A Docker-based development environment for AI-assisted coding with [OpenCode](https://opencode.ai/) and [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
+A batteries-included Docker development environment for AI-assisted coding with [OpenCode](https://opencode.ai/) and [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Spin up a fully configured workspace in seconds — no setup required.
+
+### Sensible Defaults, Pre-configured
+
+- **Shell** — Zsh with Oh-My-Zsh, autosuggestions, syntax highlighting, and a [Starship](https://starship.rs/) prompt. 50k-line shared history with deduplication, auto-cd, typo correction, and extended globbing.
+- **Editor** — Vim with relative line numbers, smart-case search, persistent undo, space as leader key, and 26+ selectable themes (`vim-theme`). 2-space indent for JS/TS/JSON/YAML, 4-space for everything else.
+- **Tmux** — Mouse support, vim-style pane navigation, 50k-line scrollback, true color, and a ready-made 3-pane dev layout (`Ctrl+b D`).
+- **Git** — Host `.gitconfig` and SSH keys imported automatically. Defaults to `main` branch, `pull.rebase=false`, and `core.autocrlf=input`.
+- **Python** — Managed by [uv](https://docs.astral.sh/uv/). Auto-creates `.venv` when `requirements.txt` or `pyproject.toml` is detected.
+- **Node.js** — LTS version via [nvm](https://github.com/nvm-sh/nvm), ready to use.
+- **PostgreSQL 15** — One-command start (`pg-start`), auto-initializes on first run with a `dev` database and [pgvector](https://github.com/pgvector/pgvector) extension pre-installed. Trust auth for local connections.
+- **Search** — ripgrep, fd, and fzf wired together. `Ctrl+R` for history, `Ctrl+T` for files, `Alt+C` for directories — all with preview windows.
+- **Direnv** — Host approvals carried over so `.envrc` files work without re-allowing inside the container.
+- **Locale** — UTF-8 (`en_US.UTF-8`) everywhere.
 
 ## Quick Start
 
